@@ -1,0 +1,22 @@
+{
+	"env": {
+		"node": true,
+		"es2021": true,
+		"browser": true
+	},
+	"parserOptions": {
+		"sourceType": "module",
+		"ecmaVersion": "latest",
+		"ecmaFeatures": {
+			"jsx": true
+		}
+	},
+	"extends": ["eslint:recommended"],
+	"rules": {
+		"no-empty": "warn",
+		"no-debugger": "warn",
+		"no-unused-vars": ["warn", { "ignoreRestSiblings": true }],
+		"no-constant-condition": "off",
+		"no-inner-declarations": "off"
+	}
+}
