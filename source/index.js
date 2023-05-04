@@ -76,7 +76,7 @@ export function parseQuery(args, ...vars) {
 			}
 		} while (lines.length);
 
-		throw new Error(`Could not parse attributes`);
+		throw new Error(`Error parsing attributes`);
 	}
 
 	function matchLine(line, regex) {
@@ -113,147 +113,117 @@ export function parseQuery(args, ...vars) {
 }
 
 export async function executeQuery(db, query, parents) {
-	let { type, sql, variables, properties, relations } = query;
+	let { type, sql, variables, relations } = query;
 
-	if (type == undefined && sql) {
-		let props = properties.join(', ');
-		let entries = await db.all(`${sql} RETURNING ${props}`, variables);
+	if (parents == undefined) {
+		if (sql) {
+			let [attributeSql] = queryAttributes(db, query);
+			let entries = await db.all(`${sql} RETURNING ${attributeSql}`, variables);
 
-		parents = entries;
+			parents = entries;
+		} else {
+			parents = [{}];
+		}
 	}
-
-	let root = parents ?? {};
-
-	let columns = await db.all(`SELECT name FROM pragma_table_info('${type}')`);
-	let columnNames = columns.map(column => column.name);
 
 	for (let relation of relations) {
-		let { type, sql, variables, attributes: baseAttributes, relations: subrelations } = relation;
+		let { type, sql, variables } = relation;
 
-		let extraAttributes = new Set();
-		for (let subrelation of subrelations) {
-			let columnName = subrelation.type + 'Id';
-			if (columnNames.includes(columnName) === false) {
-				columnName = 'id';
-			}
+		let scope;
+		let table = type;
+		let column = type + 'Id';
+		let singular = parents[0][column] !== undefined;
+		let resource = singular ? query.type : type;
 
-			if (baseAttributes.includes(columnName) === false) {
-				extraAttributes.add(columnName);
-			}
-		}
-
-		let attributes = [...extraAttributes, ...baseAttributes];
-		let properties = attributes.join(',');
-
-		if (parents == undefined) {
-			let results;
-
-			if (properties) {
-				results = await db.all(`SELECT ${properties} FROM ${type} ${sql}`, variables);
-
-				for (let result of results) {
-					for (let extraAttribute of extraAttributes) {
-						Object.defineProperty(result, extraAttribute, {
-							value: result[extraAttribute],
-							enumerable: false,
-						});
-					}
-				}
-			} else {
-				results = await db.get(`SELECT COUNT(*) AS length FROM ${type} ${sql}`, variables);
-				results = Array.from(results).map(() => ({}));
-			}
-
-			await executeQuery(db, relation, results);
-
-			if (relations.length === 1) {
-				return results;
-			} else {
-				root[type] = results;
-			}
+		if (query.type == undefined) {
+			scope = `WITH temp AS (SELECT * FROM ${resource})`;
 		} else {
-			let columnName = type + 'Id';
-			if (columnNames.includes(columnName)) {
-				let references = await db.all(`PRAGMA foreign_key_list("${query.type}")`);
-				let referenced = references.find(r => r.from === columnName);
+			let key;
 
-				if (properties) {
-					let statement = await db.prepare(
-						`WITH temp AS (SELECT * FROM "${referenced.table}" WHERE "${referenced.to}" = ?) SELECT ${properties} FROM ${referenced.table} ${sql}`,
-					);
-					for (let parent of parents) {
-						let id = parent[referenced.from];
-						let child = await statement.get([id, ...variables]);
-						if (child) {
-							await executeQuery(db, relation, [child]);
-						}
-						parent[type] = child;
-					}
-					await statement.finalize();
-				} else {
-					let statement = await db.prepare(
-						`WITH temp AS (SELECT * FROM "${referenced.table}" WHERE "${referenced.to}" = ?) SELECT COUNT(*) AS length FROM ${referenced.table} ${sql}`,
-					);
-
-					for (let parent of parents) {
-						let id = parent[referenced.from];
-						let result = await statement.get([id, ...variables]);
-						let children = result ? [{}] : [];
-						if (children.length) {
-							await executeQuery(db, relation, children);
-						}
-
-						parent[type] = children;
-					}
+			if (singular) {
+				let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
+				let referenced = references.find(r => r.from === column);
+				if (referenced == undefined) {
+					throw new Error(`No relations found from ${query.type} to ${type}`);
 				}
+
+				key = referenced.to;
+				table = referenced.table;
 			} else {
-				let references = await db.all(`PRAGMA foreign_key_list("${type}")`);
+				let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
 				let referenced = references.filter(r => r.table === query.type);
 				if (referenced.length === 0) {
-					console.warn(`No relations found from ${type} to ${query.type}`);
+					throw new Error(`No relations found from ${type} to ${query.type}`);
 				} else if (referenced.length > 1) {
-					console.warn(`Mutliple relations from ${type} to ${query.type}`);
+					// TODO? add syntax + warning for selecting foreign key?
+					throw new Error(`Mutliple relations from ${type} to ${query.type}`);
 				}
 
-				let reference = referenced[0];
-
-				if (properties) {
-					let statement = await db.prepare(
-						`WITH temp AS (SELECT * FROM "${type}" WHERE "${reference.from}" = ?) SELECT ${properties} FROM temp ${sql}`,
-					);
-
-					for (let parent of parents) {
-						let id = parent[reference.to];
-						let children = await statement.all([id, ...variables]);
-						if (children.length) {
-							await executeQuery(db, relation, children);
-						}
-
-						parent[type] = children;
-					}
-
-					await statement.finalize();
-				} else {
-					let statement = await db.prepare(
-						`WITH temp AS (SELECT * FROM "${type}" WHERE "${reference.from}" = ?) SELECT COUNT(*) AS length FROM temp ${sql}`,
-					);
-
-					for (let parent of parents) {
-						let id = parent[reference.to];
-						let result = await statement.get([id, ...variables]);
-						let children = Array.from(result).map(() => ({}));
-						if (children.length) {
-							await executeQuery(db, relation, children);
-						}
-
-						parent[type] = children;
-					}
-
-					await statement.finalize();
-				}
+				key = referenced[0].from;
+				table = type;
 			}
+
+			scope = `WITH temp AS (SELECT * FROM "${table}" WHERE "${key}" = ?)`;
+		}
+
+		let [attributeSql, attributes] = await queryAttributes(db, relation);
+
+		let statement = await db.prepare(`${scope} SELECT ${attributeSql} FROM temp ${sql}`);
+
+		try {
+			for (let parent of parents) {
+				let args = [...variables];
+				if (query.type) {
+					args.unshift(singular ? parent[column] : parent.id);
+				}
+
+				let children = await statement.all(args);
+				if (children.length) {
+					patchAttributes(children, attributes);
+					await executeQuery(db, { ...relation, type: table }, children);
+				}
+
+				parent[type] = singular ? children[0] : children;
+			}
+		} finally {
+			await statement.finalize();
 		}
 	}
 
-	return root;
+	if (type == undefined && relations.length === 1) {
+		return parents[0][relations[0].type];
+	} else {
+		return parents;
+	}
+}
+
+async function queryAttributes(db, query) {
+	let { attributes: base, relations } = query;
+
+	let statement = await db.prepare(`SELECT COUNT(*) AS length FROM sqlite_master WHERE type = 'table' AND name = ?`);
+
+	let extra = [];
+	for (let relation of relations) {
+		let tables = await statement.get([relation.type]);
+		if (tables.length) {
+			extra.push('id');
+		} else {
+			extra.push(relation.type + 'Id');
+		}
+	}
+
+	await statement.finalize();
+
+	let all = [...new Set([...extra, ...base])];
+	let sql = all.map(a => `"${a}"`).join(',');
+
+	return [sql, extra];
+}
+
+function patchAttributes(objects, extaAttributes) {
+	for (let object of objects) {
+		for (let extraAttribute of extaAttributes) {
+			Object.defineProperty(object, extraAttribute, { enumerable: false, value: object[extraAttribute] });
+		}
+	}
 }
