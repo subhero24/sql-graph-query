@@ -3,14 +3,17 @@
 	"version": "0.0.1",
 	"description": "Graph query for sqlite",
 	"type": "module",
-	"main": "index.js",
+	"main": "build/index.js",
 	"scripts": {
-		"test": "node source/test/index.js"
+		"test": "node source/test/index.js",
+		"build": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --minify --analyze",
+		"prepare": "npm run build"
 	},
 	"keywords": [],
 	"author": "Bruno Van Damme",
 	"license": "MIT",
 	"devDependencies": {
+		"esbuild": "^0.17.18",
 		"eslint": "^8.39.0",
 		"fs-extra": "^11.1.1",
 		"prettier": "^2.8.8",
