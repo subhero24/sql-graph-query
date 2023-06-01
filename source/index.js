@@ -190,8 +190,12 @@ export async function executeQuery(db, query, parents) {
 		}
 	}
 
-	if (type == undefined && relations.length === 1) {
-		return parents[0][relations[0].type];
+	if (type == undefined) {
+		if (relations.length === 1) {
+			return parents[0][relations[0].type];
+		} else {
+			return parents[0];
+		}
 	} else {
 		return parents;
 	}

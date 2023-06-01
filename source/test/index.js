@@ -421,4 +421,39 @@ suite('test 15', async () => {
 	assert.is(result[0]?.car?.brand?.name, 'Chevrolet');
 });
 
+suite('test 16', async () => {
+	await db.exec(`
+		PRAGMA foreign_keys = ON;
+
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+
+		CREATE TABLE "cars" (
+			"id" TEXT PRIMARY KEY,
+			"brand" TEXT
+		);
+
+
+		INSERT INTO "cars"("id", "brand") VALUES ('1', 'Chevrolet');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+	`);
+
+	let result = await db.query`
+		users {
+			name
+		}
+
+		cars {
+			brand
+		}
+	}`;
+
+	console.log(result);
+
+	assert.is(result?.users?.[0]?.name, 'Bruno');
+	assert.is(result?.cars?.[0]?.brand, 'Chevrolet');
+});
+
 suite.run();
