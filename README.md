@@ -15,8 +15,7 @@ import graphSql from 'graph-sql';
 
 let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
 let query = graphSql.bind(db);
-
-await query`
+let result = await query`
 	users {
 		id
 		lastname
@@ -27,24 +26,4 @@ await query`
 		}
 	}
 `;
-```
-
-Or alternatively
-
-```javascript
-import graphSql from 'graph-sql'
-
-let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
-db.query = graphSql
-
-await db.query`
-	users {
-		id
-		lastname
-		firstname
-		cars {
-			id
-			brand
-		}
-	}
 ```
