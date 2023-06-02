@@ -209,17 +209,21 @@ async function queryAttributes(db, query) {
 	let extra = [];
 	for (let relation of relations) {
 		let tables = await statement.get([relation.type]);
+		let column;
 		if (tables.length) {
-			extra.push('id');
+			column = 'id';
 		} else {
-			extra.push(relation.type + 'Id');
+			column = relation.type + 'Id';
+		}
+
+		if (base.includes(column) === false) {
+			extra.push(column);
 		}
 	}
 
 	await statement.finalize();
 
-	let all = [...new Set([...extra, ...base])];
-	let sql = all.map(a => `"${a}"`).join(',');
+	let sql = [...extra, ...base].map(a => `"${a}"`).join(',');
 
 	return [sql, extra];
 }
