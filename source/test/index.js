@@ -450,10 +450,28 @@ suite('test 16', async () => {
 		}
 	}`;
 
-	console.log(result);
-
 	assert.is(result?.users?.[0]?.name, 'Bruno');
 	assert.is(result?.cars?.[0]?.brand, 'Chevrolet');
+});
+
+suite('test 17', async () => {
+	await db.exec(`
+		PRAGMA foreign_keys = ON;
+
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+	`);
+
+	let result = await db.query`
+		users {	
+			name	
+		}`;
+
+	assert.is(result?.[0]?.name, 'Bruno');
 });
 
 suite.run();
