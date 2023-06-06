@@ -1,11 +1,11 @@
 {
 	"name": "graph-sql",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"description": "Graph query for sqlite",
 	"type": "module",
 	"main": "build/index.js",
 	"scripts": {
-		"test": "node source/test/index.js",
+		"test": "uvu source/test",
 		"build": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --minify --analyze",
 		"prepare": "npm run build"
 	},

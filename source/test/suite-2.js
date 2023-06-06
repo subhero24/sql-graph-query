@@ -6,7 +6,7 @@ import * as Uvu from 'uvu';
 import * as assert from 'uvu/assert';
 import * as Database from 'sqlite';
 
-import graphSql from '../index.js';
+import query from '../index.js';
 
 let databasePath = Path.resolve('source', 'test', 'test.sqlite');
 
@@ -18,7 +18,7 @@ suite.before.each(async () => {
 	await Filesystem.ensureFile(databasePath);
 
 	db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
-	db.query = graphSql;
+	db.query = query;
 });
 
 suite.after.each(async () => {
@@ -148,7 +148,6 @@ suite('test 7', async () => {
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
-
 		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
 		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
 	`);

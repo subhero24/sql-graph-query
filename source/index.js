@@ -11,7 +11,7 @@ export default async function graphSql(...args) {
 }
 
 export function parseQuery(args, ...vars) {
-	let string = args.join('');
+	let string = typeof args === 'string' ? args : args.join('');
 	let matches = [...string.matchAll(lineRegex)];
 	let entries = matches.map(match => ({ text: match[1], range: match.indices[1] }));
 
