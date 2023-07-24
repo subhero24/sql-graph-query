@@ -7,6 +7,7 @@
 	"scripts": {
 		"test": "uvu source/test",
 		"build": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --minify --analyze",
+		"develop": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --watch --analyze",
 		"prepare": "npm run build"
 	},
 	"keywords": [],
