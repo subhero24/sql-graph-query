@@ -8,7 +8,7 @@ import * as Database from 'sqlite';
 
 import query from '../index.js';
 
-let databasePath = Path.resolve('source', 'test', 'test.sqlite');
+let databasePath = Path.resolve('source', 'test', 'suite1.sqlite');
 
 let db;
 let suite = Uvu.suite('GraphSql');

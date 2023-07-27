@@ -8,7 +8,7 @@ import * as Database from 'sqlite';
 
 import query from '../index.js';
 
-let databasePath = Path.resolve('source', 'test', 'test.sqlite');
+let databasePath = Path.resolve('source', 'test', 'suite2.sqlite');
 
 let db;
 let suite = Uvu.suite('GraphSql');
@@ -471,6 +471,24 @@ suite('test 17', async () => {
 		}`;
 
 	assert.is(result?.[0]?.name, 'Bruno');
+});
+
+suite('Allow SQL expressions as attribute', async () => {
+	await db.exec(`
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+	`);
+
+	let result = await db.query`users {
+		COUNT(*) AS length
+	}`;
+
+	assert.is(result[0].length, 2);
 });
 
 suite.run();

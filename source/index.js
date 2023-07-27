@@ -202,11 +202,13 @@ export async function executeQuery(db, query, parents) {
 }
 
 async function queryAttributes(db, query) {
-	let { attributes: base, relations } = query;
+	let { type, attributes, relations } = query;
 
 	let statement = await db.prepare(`SELECT COUNT(*) AS length FROM sqlite_master WHERE type = 'table' AND name = ?`);
 
-	let extra = [];
+	let queryAttributes = new Set(attributes);
+	let shadowAttributes = new Set();
+	let relationAttributes = new Set();
 	for (let relation of relations) {
 		let tables = await statement.get([relation.type]);
 		let column;
@@ -216,21 +218,34 @@ async function queryAttributes(db, query) {
 			column = relation.type + 'Id';
 		}
 
-		if (base.includes(column) === false) {
-			extra.push(column);
+		queryAttributes.delete(column);
+		relationAttributes.add(`"${column}"`);
+
+		if (attributes.includes(column) === false) {
+			shadowAttributes.add(column);
 		}
 	}
 
 	await statement.finalize();
 
-	let sql = [...extra, ...base].map(a => `"${a}"`).join(',');
+	let sqlQueryAttributes = [...queryAttributes];
+	if (sqlQueryAttributes.length) {
+		let info = await db.all(`PRAGMA table_info("${type}")`);
+		let columns = info.map(column => column.name);
 
-	return [sql, extra];
+		sqlQueryAttributes = sqlQueryAttributes.map(attribute =>
+			columns.includes(attribute) ? `"${attribute}"` : attribute,
+		);
+	}
+
+	let sql = [...relationAttributes, ...sqlQueryAttributes].join(',');
+
+	return [sql, [...shadowAttributes]];
 }
 
-function patchAttributes(objects, extaAttributes) {
+function patchAttributes(objects, extraAttributes) {
 	for (let object of objects) {
-		for (let extraAttribute of extaAttributes) {
+		for (let extraAttribute of extraAttributes) {
 			Object.defineProperty(object, extraAttribute, { enumerable: false, value: object[extraAttribute] });
 		}
 	}
