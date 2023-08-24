@@ -263,21 +263,27 @@ function patchAttributes(objects, shadowAttributes) {
 function jsonFilter(object, relation) {
 	let { attributes, relations } = relation;
 
-	if (relations.length === 0 && attributes.length === 1 && attributes[0] === '*') {
-		return object;
-	}
+	let isArray = object instanceof Array;
+	let isWildcard = relations.length === 0 && attributes.length === 1 && attributes[0] === '*';
 
-	let result = {};
-	for (let key in object) {
-		if (attributes.includes(key)) {
-			result[key] = object[key];
-		} else {
-			let relation = relations.find(relation => relation.type === key);
-			if (relation) {
-				result[key] = jsonFilter(object[key], relation);
+	let objects = isArray ? object : [object];
+	let results = objects.map(object => {
+		if (isWildcard) return object;
+
+		let result = {};
+		for (let key in object) {
+			if (attributes.includes(key)) {
+				result[key] = object[key];
+			} else {
+				let relation = relations.find(relation => relation.type === key);
+				if (relation) {
+					result[key] = jsonFilter(object[key], relation);
+				}
 			}
 		}
-	}
 
-	return result;
+		return result;
+	});
+
+	return isArray ? results : results[0];
 }

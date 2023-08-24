@@ -138,4 +138,24 @@ suite('test 6', async () => {
 	assert.is(result[0]?.json?.b, 'y');
 });
 
+suite.only('test 6', async () => {
+	await db.exec(`
+		CREATE TABLE "users" (
+			"cars" TEXT
+		);
+
+		INSERT INTO "users"("cars") VALUES ('[{"license":"ABC-123"},{"license":"XYZ-987"}]');
+	`);
+
+	let result = await db.query`users {
+		cars {
+			license
+		}
+	}`;
+
+	console.log(JSON.stringify(result, null, 4));
+	assert.is(result[0]?.cars?.[0]?.license, 'ABC-123');
+	assert.is(result[0]?.cars?.[1]?.license, 'XYZ-987');
+});
+
 suite.run();
