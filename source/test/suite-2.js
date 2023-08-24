@@ -491,4 +491,55 @@ suite('Allow SQL expressions as attribute', async () => {
 	assert.is(result[0].length, 2);
 });
 
+suite('Allow 1 character properties', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"a" TEXT
+		);
+
+		INSERT INTO "resources"("a") VALUES ('1');
+	`);
+
+	let result = await db.query`resources {
+		a
+	}`;
+
+	assert.is(result.length, 1);
+	assert.is(result[0].a, '1');
+});
+
+suite('Quote properties', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"from" TEXT
+		);
+
+		INSERT INTO "resources"("from") VALUES ('1');
+	`);
+
+	let result = await db.query`resources {
+		from
+	}`;
+
+	assert.is(result.length, 1);
+	assert.is(result[0].from, '1');
+});
+
+suite('Quote table names', async () => {
+	await db.exec(`
+		CREATE TABLE "values" (
+			"attribute" TEXT
+		);
+
+		INSERT INTO "values"("attribute") VALUES ('1');
+	`);
+
+	let result = await db.query`values {
+		attribute
+	}`;
+
+	assert.is(result.length, 1);
+	assert.is(result[0].attribute, '1');
+});
+
 suite.run();

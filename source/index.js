@@ -1,4 +1,4 @@
-const lineRegex = /\s*(.+\S)/dgmy;
+const lineRegex = /\s*(.*\S)/dgmy;
 const queryRegex = /((?:INSERT|UPDATE)\s.*)\{\s*$/di;
 const relationStartRegex = /^(\S+)(.*)?\{\s*$/d;
 const relationFinishRegex = /\}\s*/d;
@@ -129,64 +129,72 @@ export async function executeQuery(db, query, parents) {
 	for (let relation of relations) {
 		let { type, sql, variables } = relation;
 
-		let scope;
-		let table = type;
-		let column = type + 'Id';
-		let singular = parents[0][column] !== undefined;
-		let resource = singular ? query.type : type;
-
-		if (query.type == undefined) {
-			scope = `WITH temp AS (SELECT * FROM ${resource})`;
-		} else {
-			let key;
-
-			if (singular) {
-				let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
-				let referenced = references.find(r => r.from === column);
-				if (referenced == undefined) {
-					throw new Error(`No relations found from ${query.type} to ${type}`);
-				}
-
-				key = referenced.to;
-				table = referenced.table;
-			} else {
-				let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
-				let referenced = references.filter(r => r.table === query.type);
-				if (referenced.length === 0) {
-					throw new Error(`No relations found from ${type} to ${query.type}`);
-				} else if (referenced.length > 1) {
-					// TODO? add syntax + warning for selecting foreign key?
-					throw new Error(`Mutliple relations from ${type} to ${query.type}`);
-				}
-
-				key = referenced[0].from;
-				table = type;
-			}
-
-			scope = `WITH temp AS (SELECT * FROM "${table}" WHERE "${key}" = ?)`;
-		}
-
-		let [attributeSql, attributes] = await queryAttributes(db, relation);
-
-		let statement = await db.prepare(`${scope} SELECT ${attributeSql} FROM temp ${sql}`);
-
-		try {
+		let relationIsJson = parents[0][type] !== undefined;
+		if (relationIsJson) {
 			for (let parent of parents) {
-				let args = [...variables];
-				if (query.type) {
-					args.unshift(singular ? parent[column] : parent.id);
+				let json = parent[type];
+				if (json) {
+					parent[type] = jsonFilter(JSON.parse(parent[type]), relation);
 				}
-
-				let children = await statement.all(args);
-				if (children.length) {
-					patchAttributes(children, attributes);
-					await executeQuery(db, { ...relation, type: table }, children);
-				}
-
-				parent[type] = singular ? children[0] : children;
 			}
-		} finally {
-			await statement.finalize();
+		} else {
+			let scope;
+			let column = type + 'Id';
+			let singular = parents[0][column] !== undefined;
+			let resource = singular ? query.type : type;
+
+			if (query.type == undefined) {
+				scope = `WITH temp AS (SELECT * FROM "${resource}")`;
+			} else {
+				let key;
+
+				if (singular) {
+					let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
+					let referenced = references.find(r => r.from === column);
+					if (referenced == undefined) {
+						throw new Error(`No relations found from ${query.type} to ${type}`);
+					}
+
+					key = referenced.to;
+					relation.type = referenced.table;
+				} else {
+					let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
+					let referenced = references.filter(r => r.table === query.type);
+					if (referenced.length === 0) {
+						throw new Error(`No relations found from ${type} to ${query.type}`);
+					} else if (referenced.length > 1) {
+						// TODO? add syntax + warning for selecting foreign key?
+						throw new Error(`Mutliple relations from ${type} to ${query.type}`);
+					}
+
+					key = referenced[0].from;
+				}
+
+				scope = `WITH temp AS (SELECT * FROM "${relation.type}" WHERE "${key}" = ?)`;
+			}
+
+			let [attributeSql, shadowAttributes] = await queryAttributes(db, relation);
+
+			let statement = await db.prepare(`${scope} SELECT ${attributeSql} FROM temp ${sql}`);
+
+			try {
+				for (let parent of parents) {
+					let args = [...variables];
+					if (query.type) {
+						args.unshift(singular ? parent[column] : parent.id);
+					}
+
+					let children = await statement.all(args);
+					if (children.length) {
+						patchAttributes(children, shadowAttributes);
+						await executeQuery(db, relation, children);
+					}
+
+					parent[type] = singular ? children[0] : children;
+				}
+			} finally {
+				await statement.finalize();
+			}
 		}
 	}
 
@@ -204,37 +212,38 @@ export async function executeQuery(db, query, parents) {
 async function queryAttributes(db, query) {
 	let { type, attributes, relations } = query;
 
-	let statement = await db.prepare(`SELECT COUNT(*) AS length FROM sqlite_master WHERE type = 'table' AND name = ?`);
+	let columns = await db.all(`PRAGMA table_info("${type}")`);
+	let columnNames = columns.map(column => column.name);
 
 	let queryAttributes = new Set(attributes);
 	let shadowAttributes = new Set();
 	let relationAttributes = new Set();
 	for (let relation of relations) {
-		let tables = await statement.get([relation.type]);
-		let column;
-		if (tables.length) {
-			column = 'id';
+		let relationColumnName;
+		let relationIsJson = columns.some(column => column.name === relation.type && column.type === 'TEXT');
+		if (relationIsJson) {
+			relationColumnName = relation.type;
 		} else {
-			column = relation.type + 'Id';
+			let key = relation.type + 'Id';
+			if (columnNames.includes(key)) {
+				relationColumnName = key;
+			} else {
+				relationColumnName = 'id';
+			}
+
+			if (attributes.includes(relationColumnName) === false) {
+				shadowAttributes.add(relationColumnName);
+			}
 		}
 
-		queryAttributes.delete(column);
-		relationAttributes.add(`"${column}"`);
-
-		if (attributes.includes(column) === false) {
-			shadowAttributes.add(column);
-		}
+		queryAttributes.delete(relationColumnName);
+		relationAttributes.add(`"${relationColumnName}"`);
 	}
-
-	await statement.finalize();
 
 	let sqlQueryAttributes = [...queryAttributes];
 	if (sqlQueryAttributes.length) {
-		let info = await db.all(`PRAGMA table_info("${type}")`);
-		let columns = info.map(column => column.name);
-
 		sqlQueryAttributes = sqlQueryAttributes.map(attribute =>
-			columns.includes(attribute) ? `"${attribute}"` : attribute,
+			columnNames.includes(attribute) ? `"${attribute}"` : attribute,
 		);
 	}
 
@@ -243,10 +252,28 @@ async function queryAttributes(db, query) {
 	return [sql, [...shadowAttributes]];
 }
 
-function patchAttributes(objects, extraAttributes) {
+function patchAttributes(objects, shadowAttributes) {
 	for (let object of objects) {
-		for (let extraAttribute of extraAttributes) {
-			Object.defineProperty(object, extraAttribute, { enumerable: false, value: object[extraAttribute] });
+		for (let shadowAttribute of shadowAttributes) {
+			Object.defineProperty(object, shadowAttribute, { enumerable: false, value: object[shadowAttribute] });
 		}
 	}
+}
+
+function jsonFilter(object, relation) {
+	let { attributes, relations } = relation;
+
+	let result = {};
+	for (let key in object) {
+		if (attributes.includes(key)) {
+			result[key] = object[key];
+		} else {
+			let relation = relations.find(relation => relation.type === key);
+			if (relation) {
+				result[key] = jsonFilter(object[key], relation);
+			}
+		}
+	}
+
+	return result;
 }

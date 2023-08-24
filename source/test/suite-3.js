@@ -1,0 +1,122 @@
+import Path from 'path';
+import Sqlite3 from 'sqlite3';
+import Filesystem from 'fs-extra';
+
+import * as Uvu from 'uvu';
+import * as assert from 'uvu/assert';
+import * as Database from 'sqlite';
+
+import query from '../index.js';
+
+let databasePath = Path.resolve('source', 'test', 'suite3.sqlite');
+
+let db;
+let suite = Uvu.suite('GraphSql');
+
+suite.before.each(async () => {
+	await Filesystem.remove(databasePath);
+	await Filesystem.ensureFile(databasePath);
+
+	db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
+	db.query = query;
+});
+
+suite.after.each(async () => {
+	await Filesystem.remove(databasePath);
+
+	db = undefined;
+});
+
+suite('test 1', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"a":"x","b":"y"}');
+	`);
+
+	let result = await db.query`resources {
+		json {
+			a
+			b
+		}
+	}`;
+
+	assert.is(result[0]?.json?.a, 'x');
+	assert.is(result[0]?.json?.b, 'y');
+});
+
+suite('test 2', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES (NULL);
+	`);
+
+	let result = await db.query`resources {
+		json
+	}`;
+
+	assert.is(result[0]?.json, null);
+});
+
+suite('test 3', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"a":"x","b":"y"}');
+	`);
+
+	let result = await db.query`resources {
+		json
+	}`;
+
+	assert.is(result[0]?.json, '{"a":"x","b":"y"}');
+});
+
+suite('test 4', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"some":{"nested":{"property":"value"}}}');
+	`);
+
+	let result = await db.query`resources {
+		json {
+			some {
+				nested {
+					property
+				}
+			}
+		}
+	}`;
+
+	assert.is(result[0]?.json?.some?.nested?.property, 'value');
+});
+
+suite('test 5', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"a":"x","b":"y"}');
+	`);
+
+	let result = await db.query`resources {
+		json {
+			a
+		}
+	}`;
+
+	assert.is(result[0]?.json?.b, undefined);
+});
+
+suite.run();

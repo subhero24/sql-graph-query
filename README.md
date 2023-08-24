@@ -5,7 +5,7 @@ A really tiny sql query runner
 ## Installation
 
 ```
-npm install graph-sql
+npm i https://github.com/subhero24/graph-sql
 ```
 
 ## Basic usage
