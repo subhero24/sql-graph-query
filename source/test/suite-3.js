@@ -119,4 +119,23 @@ suite('test 5', async () => {
 	assert.is(result[0]?.json?.b, undefined);
 });
 
+suite('test 6', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"a":"x","b":"y"}');
+	`);
+
+	let result = await db.query`resources {
+		json {
+			*
+		}
+	}`;
+
+	assert.is(result[0]?.json?.a, 'x');
+	assert.is(result[0]?.json?.b, 'y');
+});
+
 suite.run();

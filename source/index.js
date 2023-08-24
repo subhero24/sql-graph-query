@@ -263,6 +263,10 @@ function patchAttributes(objects, shadowAttributes) {
 function jsonFilter(object, relation) {
 	let { attributes, relations } = relation;
 
+	if (relations.length === 0 && attributes.length === 1 && attributes[0] === '*') {
+		return object;
+	}
+
 	let result = {};
 	for (let key in object) {
 		if (attributes.includes(key)) {
