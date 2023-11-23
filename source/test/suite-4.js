@@ -45,7 +45,7 @@ suite('test value interpolation', async () => {
 	assert.is(result[0].id, '2');
 });
 
-suite('test array interpolation ', async () => {
+suite('test array interpolation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
@@ -57,6 +57,42 @@ suite('test array interpolation ', async () => {
 	`);
 
 	let result = await db.query`users WHERE id IN (${['1', '2']}) {
+		id
+	}`;
+
+	assert.is(result.length, 2);
+	assert.is(result[0].id, '1');
+	assert.is(result[1].id, '2');
+});
+
+suite('test double interpolation', async () => {
+	await db.exec(`
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+	`);
+
+	let result = await db.query`users WHERE id = ${'1'} AND name = ${'Bruno'} {
+		id
+	}`;
+
+	assert.is(result.length, 1);
+	assert.is(result[0].id, '1');
+});
+
+suite('test double array interpolation', async () => {
+	await db.exec(`
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+	`);
+
+	let result = await db.query`users WHERE id IN (${['1', '2', '3', '4']}) AND name IN (${['Bruno', 'Lies']}) {
 		id
 	}`;
 

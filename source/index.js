@@ -91,17 +91,19 @@ export function parseQuery(args, ...vars) {
 	}
 
 	function interpolateSql(sql, start, finish) {
+		let commas = 0;
 		let variables = [];
 		while (interpolations.length) {
 			let index = interpolations[0][1];
 			if (index <= finish) {
 				let [value] = interpolations.shift();
 
-				let pre = sql.slice(0, index - start + variables.length);
-				let post = sql.slice(index - start + variables.length);
+				let pre = sql.slice(0, index - start + variables.length + commas);
+				let post = sql.slice(index - start + variables.length + commas);
 
 				if (value instanceof Array) {
 					sql = pre + value.map(_ => '?').join(',') + post;
+					commas = commas + (value.length > 1 ? value.length - 1 : 0);
 					variables.push(...value);
 				} else {
 					sql = pre + '?' + post;
