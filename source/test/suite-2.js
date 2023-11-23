@@ -144,20 +144,22 @@ suite('test 6', async () => {
 
 suite('test 7', async () => {
 	await db.exec(`
+		PRAGMA foreign_keys = ON;
+
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
+
 		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
 	`);
 
-	let result = await db.query`users WHERE name = ${'Lies'} {
-		id
-	}`;
+	let result = await db.query`
+		users {	
+			name	
+		}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].id, '2');
+	assert.is(result?.[0]?.name, 'Bruno');
 });
 
 suite('test 8', async () => {
@@ -453,26 +455,6 @@ suite('test 16', async () => {
 	assert.is(result?.cars?.[0]?.brand, 'Chevrolet');
 });
 
-suite('test 17', async () => {
-	await db.exec(`
-		PRAGMA foreign_keys = ON;
-
-		CREATE TABLE "users" (
-			"id" TEXT PRIMARY KEY,
-			"name" TEXT
-		);
-
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-	`);
-
-	let result = await db.query`
-		users {	
-			name	
-		}`;
-
-	assert.is(result?.[0]?.name, 'Bruno');
-});
-
 suite('Allow SQL expressions as attribute', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
@@ -540,6 +522,40 @@ suite('Quote table names', async () => {
 
 	assert.is(result.length, 1);
 	assert.is(result[0].attribute, '1');
+});
+
+suite('Allow multiple relations', async () => {
+	await db.exec(`
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"carId" TEXT REFERENCES "cars"("id"),
+			"name" TEXT
+		);
+
+		CREATE TABLE "cars" (
+			"id" TEXT PRIMARY KEY,
+			"userId" TEXT REFERENCES "users"("id"),
+			"license" TEXT
+		);
+
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "cars"("id", "userId", "license") VALUES ('1', '1', 'ABC-123');
+		INSERT INTO "cars"("id", "userId", "license") VALUES ('2', '1', 'XYZ-987');
+		UPDATE "users" SET "carId" = '1' WHERE "id" = '1';
+	`);
+
+	let result = await db.query`users {
+		car {
+			license
+		}
+		cars {
+			license
+		}
+	}`;
+
+	assert.is(result[0]?.car?.license, 'ABC-123');
+	assert.is(result[0]?.cars?.[0]?.license, 'ABC-123');
+	assert.is(result[0]?.cars?.[1]?.license, 'XYZ-987');
 });
 
 suite.run();

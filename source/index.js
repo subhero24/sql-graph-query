@@ -100,9 +100,13 @@ export function parseQuery(args, ...vars) {
 				let pre = sql.slice(0, index - start + variables.length);
 				let post = sql.slice(index - start + variables.length);
 
-				sql = pre + '?' + post;
-
-				variables.push(value);
+				if (value instanceof Array) {
+					sql = pre + value.map(_ => '?').join(',') + post;
+					variables.push(...value);
+				} else {
+					sql = pre + '?' + post;
+					variables.push(value);
+				}
 			} else {
 				break;
 			}
