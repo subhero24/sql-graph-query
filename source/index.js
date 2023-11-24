@@ -52,7 +52,7 @@ export function parseQuery(args, ...vars) {
 		let [type, sql] = match.slice(1);
 		let [start, finish] = match.indices[2] ?? [];
 
-		return { type, ...interpolateSql(sql, start, finish), ...parseAttributes() };
+		return { type, table: type, ...interpolateSql(sql, start, finish), ...parseAttributes() };
 	}
 
 	function parseAttributes() {
@@ -147,7 +147,7 @@ export async function executeQuery(db, query, parents) {
 			let scope;
 			let column = type + 'Id';
 			let singular = parents[0][column] !== undefined;
-			let resource = singular ? query.type : type;
+			let resource = singular ? query.table : type;
 
 			if (query.type == undefined) {
 				scope = `WITH temp AS (SELECT * FROM "${resource}")`;
@@ -162,7 +162,7 @@ export async function executeQuery(db, query, parents) {
 					}
 
 					key = referenced.to;
-					relation.type = referenced.table;
+					relation.table = referenced.table;
 				} else {
 					let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
 					let referenced = references.filter(r => r.table === query.type);
@@ -176,7 +176,7 @@ export async function executeQuery(db, query, parents) {
 					key = referenced[0].from;
 				}
 
-				scope = `WITH temp AS (SELECT * FROM "${relation.type}" WHERE "${key}" = ?)`;
+				scope = `WITH temp AS (SELECT * FROM "${relation.table}" WHERE "${key}" = ?)`;
 			}
 
 			let [attributeSql, shadowAttributes] = await queryAttributes(db, relation);
@@ -216,9 +216,9 @@ export async function executeQuery(db, query, parents) {
 }
 
 async function queryAttributes(db, query) {
-	let { type, attributes, relations } = query;
+	let { type, table, attributes, relations } = query;
 
-	let columns = await db.all(`PRAGMA table_info("${type}")`);
+	let columns = await db.all(`PRAGMA table_info("${table}")`);
 	let columnNames = columns.map(column => column.name);
 
 	let queryAttributes = new Set(attributes);

@@ -408,16 +408,18 @@ suite('test 15', async () => {
 		INSERT INTO "users"("id", "carId", "firstname") VALUES ('1', '1', 'Bruno');
 	`);
 
-	let result = await db.query`users {
-		firstname
-		car {
-			license
-			brand {
-				id
-				name
+	let result = await db.query`
+		users {
+			firstname
+			car {
+				license
+				brand {
+					id
+					name
+				}
 			}
 		}
-	}`;
+	`;
 
 	assert.is(result[0]?.car?.brand?.name, 'Chevrolet');
 });
