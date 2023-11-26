@@ -1,6 +1,6 @@
 {
-	"name": "graph-sql",
-	"version": "1.0.3",
+	"name": "sql-graph-query",
+	"version": "1.0.4",
 	"description": "Graph query for sqlite",
 	"type": "module",
 	"main": "build/index.js",

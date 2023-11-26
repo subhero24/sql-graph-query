@@ -1,20 +1,20 @@
-# GraphSql
+# SQL Graph Query
 
 A really tiny sql query runner
 
 ## Installation
 
 ```
-npm i https://github.com/subhero24/graph-sql
+npm i sql-graph-query
 ```
 
 ## Basic usage
 
 ```javascript
-import graphSql from 'graph-sql';
+import sqlQueryGraph from 'sql-graph-query';
 
 let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
-let query = graphSql.bind(db);
+let query = sqlQueryGraph.bind(db);
 let result = await query`
 	users {
 		id
@@ -22,23 +22,31 @@ let result = await query`
 		firstname
 		cars {
 			id
-			brand
+			license
+			brand {
+				id
+				name
+			}
 		}
 	}
 `;
 ```
 
-or add it to the database object `db.query = graphSql` and use it like
+or add it to the database object `db.query = sqlQueryGraph` and use it like
 
 ```javascript
-let result = await db.query`
+let result = await query`
 	users {
 		id
 		lastname
 		firstname
 		cars {
 			id
-			brand
+			license
+			brand {
+				id
+				name
+			}
 		}
 	}
 `;
