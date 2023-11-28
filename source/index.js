@@ -274,7 +274,7 @@ function jsonFilter(object, relation) {
 
 	let objects = isArray ? object : [object];
 	let results = objects.map(object => {
-		if (isWildcard) return object;
+		if (isWildcard) return object['*'] ?? object;
 
 		let result = {};
 		for (let key in object) {

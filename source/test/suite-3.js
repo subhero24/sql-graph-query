@@ -147,14 +147,80 @@ suite('test 6', async () => {
 		INSERT INTO "users"("cars") VALUES ('[{"license":"ABC-123"},{"license":"XYZ-987"}]');
 	`);
 
-	let result = await db.query`users {
-		cars {
-			license
+	let result = await db.query`
+		users {
+			cars {
+				license
+			}
 		}
-	}`;
+	`;
 
 	assert.is(result[0]?.cars?.[0]?.license, 'ABC-123');
 	assert.is(result[0]?.cars?.[1]?.license, 'XYZ-987');
+});
+
+suite('Json containing wildcard attribute', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"*":"x"}');
+	`);
+
+	let resources = await db.query`
+		resources {
+			json {
+				*
+			}
+		}
+	`;
+
+	assert.is(resources[0]?.json?.['*'], 'x');
+});
+
+suite.only('Json containing wildcard attribute', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"*":"x","a":"b"}');
+	`);
+
+	let resources = await db.query`
+		resources {
+			json {
+				*
+			}
+		}
+	`;
+
+	assert.is(resources[0]?.json?.a, undefined);
+});
+
+suite.only('Json containing wildcard attribute', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ('{"*":{"a":"x","b":"y"},"c":"z"}');
+	`);
+
+	let resources = await db.query`
+		resources {
+			json {
+				* {
+					a
+				}
+			}
+		}
+	`;
+
+	assert.is(resources[0]?.json?.['*'].a, 'x');
+	assert.is(resources[0]?.json?.['*'].b, undefined);
+	assert.is(resources[0]?.json?.c, undefined);
 });
 
 suite.run();
