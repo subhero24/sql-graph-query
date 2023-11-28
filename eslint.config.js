@@ -1,13 +1,7 @@
 import globals from 'globals';
-import pluginReact from 'eslint-plugin-react';
-import pluginReactHooks from 'eslint-plugin-react-hooks';
 
 export default {
-	files: ['**/*.js', '**/*.jsx'],
-	plugins: {
-		'react': pluginReact,
-		'react-hooks': pluginReactHooks,
-	},
+	files: ['**/*.js'],
 	languageOptions: {
 		parserOptions: {
 			ecmaFeatures: {
@@ -28,6 +22,7 @@ export default {
 		'no-class-assign': 'error',
 		'no-compare-neg-zero': 'error',
 		'no-cond-assign': 'error',
+		'no-console': 'warn',
 		'no-const-assign': 'error',
 		'no-control-regex': 'error',
 		'no-debugger': 'warn',
@@ -79,27 +74,5 @@ export default {
 		'require-yield': 'error',
 		'use-isnan': 'error',
 		'valid-typeof': 'error',
-		'react/jsx-key': 'error',
-		'react/jsx-no-comment-textnodes': 'error',
-		'react/jsx-no-duplicate-props': 'error',
-		'react/jsx-no-target-blank': 'error',
-		'react/jsx-no-undef': 'error',
-		'react/jsx-uses-react': 'error',
-		'react/jsx-uses-vars': 'error',
-		'react/no-children-prop': 'error',
-		'react/no-danger-with-children': 'error',
-		'react/no-deprecated': 'error',
-		'react/no-direct-mutation-state': 'error',
-		'react/no-find-dom-node': 'error',
-		'react/no-is-mounted': 'error',
-		'react/no-render-return-value': 'error',
-		'react/no-string-refs': 'error',
-		'react/no-unescaped-entities': 'error',
-		'react/no-unknown-property': 'error',
-		'react/no-unsafe': 'off',
-		'react/prop-types': 'off',
-		'react/require-render-return': 'warn',
-		'react-hooks/rules-of-hooks': 'error',
-		'react-hooks/exhaustive-deps': 'warn',
 	},
 };

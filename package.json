@@ -6,9 +6,10 @@
 	"main": "build/index.js",
 	"scripts": {
 		"test": "uvu source/test",
+		"lint": "eslint {source/*.js,source/**/*.js} --max-warnings=0",
 		"build": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --minify --analyze",
 		"develop": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --watch --analyze",
-		"prepare": "npm run build"
+		"prepare": "npm run lint && npm run build"
 	},
 	"keywords": [],
 	"author": "Bruno Van Damme",

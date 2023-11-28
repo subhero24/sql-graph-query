@@ -159,7 +159,7 @@ suite('test 6', async () => {
 	assert.is(result[0]?.cars?.[1]?.license, 'XYZ-987');
 });
 
-suite('Json containing wildcard attribute', async () => {
+suite('Json containing wildcard attribute 1', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -179,7 +179,7 @@ suite('Json containing wildcard attribute', async () => {
 	assert.is(resources[0]?.json?.['*'], 'x');
 });
 
-suite.only('Json containing wildcard attribute', async () => {
+suite('Json containing wildcard attribute 2', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -199,7 +199,7 @@ suite.only('Json containing wildcard attribute', async () => {
 	assert.is(resources[0]?.json?.a, undefined);
 });
 
-suite.only('Json containing wildcard attribute', async () => {
+suite('Json containing wildcard attribute 3', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT

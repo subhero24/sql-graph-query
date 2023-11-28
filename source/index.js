@@ -102,7 +102,7 @@ export function parseQuery(args, ...vars) {
 				let post = sql.slice(index - start + variables.length + commas);
 
 				if (value instanceof Array) {
-					sql = pre + value.map(_ => '?').join(',') + post;
+					sql = pre + value.map(() => '?').join(',') + post;
 					commas = commas + (value.length > 1 ? value.length - 1 : 0);
 					variables.push(...value);
 				} else {
@@ -216,7 +216,7 @@ export async function executeQuery(db, query, parents) {
 }
 
 async function queryAttributes(db, query) {
-	let { type, table, attributes, relations } = query;
+	let { table, attributes, relations } = query;
 
 	let columns = await db.all(`PRAGMA table_info("${table}")`);
 	let columnNames = columns.map(column => column.name);
@@ -274,7 +274,7 @@ function jsonFilter(object, relation) {
 
 	let objects = isArray ? object : [object];
 	let results = objects.map(object => {
-		if (isWildcard) return object['*'] ?? object;
+		if (isWildcard && object['*'] == undefined) return object;
 
 		let result = {};
 		for (let key in object) {
