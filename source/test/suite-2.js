@@ -457,6 +457,43 @@ suite('test 16', async () => {
 	assert.is(result?.cars?.[0]?.brand, 'Chevrolet');
 });
 
+suite('test 17', async () => {
+	await db.exec(`
+		PRAGMA foreign_keys = ON;
+
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+
+		CREATE TABLE "cars" (
+			"id" TEXT PRIMARY KEY,
+			"userId" TEXT REFERENCES "users"("id"),
+			"brand" TEXT
+		);
+
+
+		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
+		INSERT INTO "cars"("id", "userId", "brand") VALUES ('2', '1', 'Volkswagen');
+	`);
+
+	let result = await db.query`
+		cars {
+			brand
+			user {
+				id
+				cars {
+					id
+					brand
+				}
+			}
+		}
+	`;
+
+	assert.is(result?.[0]?.user?.cars?.length, 2);
+});
+
 suite('Allow SQL expressions as attribute', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (

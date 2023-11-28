@@ -158,19 +158,19 @@ export async function executeQuery(db, query, parents) {
 					let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
 					let referenced = references.find(r => r.from === column);
 					if (referenced == undefined) {
-						throw new Error(`No relations found from ${query.type} to ${type}`);
+						throw new Error(`No relations found from ${query.table} to ${type}`);
 					}
 
 					key = referenced.to;
 					relation.table = referenced.table;
 				} else {
 					let references = await db.all(`PRAGMA foreign_key_list("${resource}")`);
-					let referenced = references.filter(r => r.table === query.type);
+					let referenced = references.filter(r => r.table === query.table);
 					if (referenced.length === 0) {
-						throw new Error(`No relations found from ${type} to ${query.type}`);
+						throw new Error(`No relations found from ${type} to ${query.table}`);
 					} else if (referenced.length > 1) {
 						// TODO? add syntax + warning for selecting foreign key?
-						throw new Error(`Mutliple relations from ${type} to ${query.type}`);
+						throw new Error(`Mutliple relations from ${type} to ${query.table}`);
 					}
 
 					key = referenced[0].from;
