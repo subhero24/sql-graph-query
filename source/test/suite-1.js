@@ -1,23 +1,22 @@
+import Os from 'node:os';
 import Path from 'path';
+import Test from 'node:test';
+import Assert from 'node:assert';
 import Sqlite3 from 'sqlite3';
 import Filesystem from 'fs-extra';
 
-import * as Uvu from 'uvu';
-import * as assert from 'uvu/assert';
 import * as Database from 'sqlite';
 
 import query from '../index.js';
 
-let databasePath = Path.resolve('source', 'test', 'suite1.sqlite');
-
 let db;
-let suite = Uvu.suite('GraphSql');
+let dbPath = await Filesystem.mkdtemp(`${Os.tmpdir()}${Path.sep}`);
 
-suite.before.each(async () => {
-	await Filesystem.remove(databasePath);
-	await Filesystem.ensureFile(databasePath);
+Test.beforeEach(async () => {
+	await Filesystem.remove(dbPath);
+	await Filesystem.ensureFile(dbPath);
 
-	db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
+	db = await Database.open({ filename: dbPath, driver: Sqlite3.Database });
 	db.query = query;
 
 	await db.exec(`
@@ -26,25 +25,25 @@ suite.before.each(async () => {
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 	`);
 });
 
-suite.after.each(async () => {
-	await Filesystem.remove(databasePath);
+Test.afterEach(async () => {
+	await Filesystem.remove(dbPath);
 
 	db = undefined;
 });
 
-suite('test 1', async () => {
+Test('using bind', async () => {
 	let result = await query.bind(db)`users {
 		id
 	}`;
 
-	assert.is(result.length, 1);
+	Assert.strictEqual(result.length, 1);
 });
 
-suite('test 2', async () => {
+Test('using call', async () => {
 	let result = await query.call(
 		db,
 		`users {
@@ -52,27 +51,25 @@ suite('test 2', async () => {
 		}`,
 	);
 
-	assert.is(result.length, 1);
+	Assert.strictEqual(result.length, 1);
 });
 
-suite('test 3', async () => {
+Test('query as string', async () => {
 	let result = await db.query(
 		`users {
 			id
 		}`,
 	);
 
-	assert.is(result.length, 1);
+	Assert.strictEqual(result.length, 1);
 });
 
-suite('test 4', async () => {
+Test('query as template literal', async () => {
 	let result = await db.query`
 		users {
 			id
 		}
 	`;
 
-	assert.is(result.length, 1);
+	Assert.strictEqual(result.length, 1);
 });
-
-suite.run();

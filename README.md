@@ -1,6 +1,7 @@
 # SQL Graph Query
 
-A really tiny sql query runner
+A really tiny query runner for sqlite with no dependencies.
+Retrieve data from your sqlite database with graphql-like queries.
 
 ## Installation
 
@@ -10,6 +11,27 @@ npm i sql-graph-query
 
 ## Basic usage
 
+It expects every table in your database to have a primary key `id`.
+It expects foreign keys in your database to end with `Id`.
+
+```javascript
+import sqlQueryGraph from 'sql-graph-query';
+
+db.query = sqlQueryGraph;
+
+let result = await db.query`
+	users {
+		lastname
+		firstname
+		cars {
+			license
+		}
+	}
+`;
+```
+
+or bind the function directly to your database
+
 ```javascript
 import sqlQueryGraph from 'sql-graph-query';
 
@@ -17,36 +39,115 @@ let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database 
 let query = sqlQueryGraph.bind(db);
 let result = await query`
 	users {
-		id
 		lastname
 		firstname
 		cars {
+			license
+		}
+	}
+`;
+```
+
+## Filtering
+
+You can use plain old SQL to filter the rows you want
+
+```javascript
+let result = await db.query`
+	users WHERE firstname = 'John' {
+		id
+		lastname
+		firstname
+		cars WHERE color IN ('red', 'blue') {
 			id
 			license
-			brand {
-				id
-				name
+		}
+	}
+`;
+```
+
+### Attributes
+
+You can also use plain old SQL to select custom attributes
+
+```javascript
+let result = await db.query`
+	users WHERE firstname = 'John' {
+		id
+		lastname AS name
+		cars {
+			COUNT(*) AS length
+		}
+		addresses {
+			*
+		}
+	}
+`;
+```
+
+## Interpolated values
+
+Use template literal interpolations to use variables in your query
+
+```javascript
+let result = await db.query`
+	users WHERE firstname = ${firstname} {
+		id
+		lastname
+		firstname
+		cars WHERE color IN ${colors}{
+			id
+			license
+		}
+	}
+`;
+```
+
+## JSON
+
+A column containing JSON strings can also be queried and filtered deeply without any special syntax
+
+```javascript
+// A table "shapes" has a column "props" which contains some JSON
+// ie. { "radius": 3, "center": { "x": 1, "y": 0 } }
+
+let result = await db.query`
+	shapes WHERE type = 'circle' {
+		id
+		props {
+			radius
+			center {
+				x
+				y
 			}
 		}
 	}
 `;
 ```
 
-or add it to the database object `db.query = sqlQueryGraph` and use it like
+## Mutations
 
 ```javascript
-let result = await query`
-	users {
+let result = await db.query`
+	INSERT INTO users(id, firstname, lastname) VALUES ('1', 'John', 'Doe') {
 		id
-		lastname
 		firstname
+		lastname
 		cars {
-			id
 			license
-			brand {
-				id
-				name
-			}
+		}
+	}
+`;
+```
+
+```javascript
+let result = await db.query`
+	UPDATE users SET firstname = 'Peter' WHERE firstname = 'John' {
+		id
+		firstname
+		lastname
+		cars {
+			license
 		}
 	}
 `;

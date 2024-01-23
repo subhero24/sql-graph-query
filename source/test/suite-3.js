@@ -1,33 +1,32 @@
+import Os from 'node:os';
 import Path from 'path';
+import Test from 'node:test';
+import Assert from 'node:assert';
 import Sqlite3 from 'sqlite3';
 import Filesystem from 'fs-extra';
 
-import * as Uvu from 'uvu';
-import * as assert from 'uvu/assert';
 import * as Database from 'sqlite';
 
 import query from '../index.js';
 
-let databasePath = Path.resolve('source', 'test', 'suite3.sqlite');
-
 let db;
-let suite = Uvu.suite('GraphSql');
+let dbPath = await Filesystem.mkdtemp(`${Os.tmpdir()}${Path.sep}`);
 
-suite.before.each(async () => {
-	await Filesystem.remove(databasePath);
-	await Filesystem.ensureFile(databasePath);
+Test.beforeEach(async () => {
+	await Filesystem.remove(dbPath);
+	await Filesystem.ensureFile(dbPath);
 
-	db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
+	db = await Database.open({ filename: dbPath, driver: Sqlite3.Database });
 	db.query = query;
 });
 
-suite.after.each(async () => {
-	await Filesystem.remove(databasePath);
+Test.afterEach(async () => {
+	await Filesystem.remove(dbPath);
 
 	db = undefined;
 });
 
-suite('test 1', async () => {
+Test('json query with attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -43,11 +42,11 @@ suite('test 1', async () => {
 		}
 	}`;
 
-	assert.is(result[0]?.json?.a, 'x');
-	assert.is(result[0]?.json?.b, 'y');
+	Assert.strictEqual(result[0]?.json?.a, 'x');
+	Assert.strictEqual(result[0]?.json?.b, 'y');
 });
 
-suite('test 2', async () => {
+Test('json being null', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -60,10 +59,10 @@ suite('test 2', async () => {
 		json
 	}`;
 
-	assert.is(result[0]?.json, null);
+	Assert.strictEqual(result[0]?.json, null);
 });
 
-suite('test 3', async () => {
+Test('json query without attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -76,10 +75,10 @@ suite('test 3', async () => {
 		json
 	}`;
 
-	assert.is(result[0]?.json, '{"a":"x","b":"y"}');
+	Assert.strictEqual(result[0]?.json, '{"a":"x","b":"y"}');
 });
 
-suite('test 4', async () => {
+Test('json deeply nested', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -98,10 +97,10 @@ suite('test 4', async () => {
 		}
 	}`;
 
-	assert.is(result[0]?.json?.some?.nested?.property, 'value');
+	Assert.strictEqual(result[0]?.json?.some?.nested?.property, 'value');
 });
 
-suite('test 5', async () => {
+Test('json filtered attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -116,10 +115,10 @@ suite('test 5', async () => {
 		}
 	}`;
 
-	assert.is(result[0]?.json?.b, undefined);
+	Assert.strictEqual(result[0]?.json?.b, undefined);
 });
 
-suite('test 6', async () => {
+Test('json wildcard', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -134,11 +133,11 @@ suite('test 6', async () => {
 		}
 	}`;
 
-	assert.is(result[0]?.json?.a, 'x');
-	assert.is(result[0]?.json?.b, 'y');
+	Assert.strictEqual(result[0]?.json?.a, 'x');
+	Assert.strictEqual(result[0]?.json?.b, 'y');
 });
 
-suite('test 6', async () => {
+Test('json arrays', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"cars" TEXT
@@ -155,11 +154,11 @@ suite('test 6', async () => {
 		}
 	`;
 
-	assert.is(result[0]?.cars?.[0]?.license, 'ABC-123');
-	assert.is(result[0]?.cars?.[1]?.license, 'XYZ-987');
+	Assert.strictEqual(result[0]?.cars?.[0]?.license, 'ABC-123');
+	Assert.strictEqual(result[0]?.cars?.[1]?.license, 'XYZ-987');
 });
 
-suite('Json containing wildcard attribute 1', async () => {
+Test('json wildcard as attribute', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -176,10 +175,10 @@ suite('Json containing wildcard attribute 1', async () => {
 		}
 	`;
 
-	assert.is(resources[0]?.json?.['*'], 'x');
+	Assert.strictEqual(resources[0]?.json?.['*'], 'x');
 });
 
-suite('Json containing wildcard attribute 2', async () => {
+Test('json wildcard as attribute filtering', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -196,10 +195,10 @@ suite('Json containing wildcard attribute 2', async () => {
 		}
 	`;
 
-	assert.is(resources[0]?.json?.a, undefined);
+	Assert.strictEqual(resources[0]?.json?.a, undefined);
 });
 
-suite('Json containing wildcard attribute 3', async () => {
+Test('json wildcard as attribute with nested attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -218,9 +217,7 @@ suite('Json containing wildcard attribute 3', async () => {
 		}
 	`;
 
-	assert.is(resources[0]?.json?.['*'].a, 'x');
-	assert.is(resources[0]?.json?.['*'].b, undefined);
-	assert.is(resources[0]?.json?.c, undefined);
+	Assert.strictEqual(resources[0]?.json?.['*'].a, 'x');
+	Assert.strictEqual(resources[0]?.json?.['*'].b, undefined);
+	Assert.strictEqual(resources[0]?.json?.c, undefined);
 });
-
-suite.run();

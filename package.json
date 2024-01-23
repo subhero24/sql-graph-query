@@ -5,7 +5,7 @@
 	"type": "module",
 	"main": "build/index.js",
 	"scripts": {
-		"test": "uvu source/test",
+		"test": "node --test",
 		"lint": "eslint {source/*.js,source/**/*.js} --max-warnings=0",
 		"build": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --minify --analyze",
 		"develop": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --watch --analyze",
@@ -20,7 +20,6 @@
 		"fs-extra": "^11.1.1",
 		"prettier": "^2.8.8",
 		"sqlite": "^4.2.0",
-		"sqlite3": "^5.1.6",
-		"uvu": "^0.5.6"
+		"sqlite3": "^5.1.6"
 	}
 }

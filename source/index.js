@@ -123,7 +123,8 @@ export async function executeQuery(db, query, parents) {
 
 	if (parents == undefined) {
 		if (sql) {
-			let [attributeSql] = queryAttributes(db, query);
+			let [attributeSql] = await queryAttributes(db, query);
+
 			let entries = await db.all(`${sql} RETURNING ${attributeSql}`, variables);
 
 			parents = entries;
@@ -204,8 +205,11 @@ export async function executeQuery(db, query, parents) {
 		}
 	}
 
-	if (type == undefined) {
-		if (relations.length === 1) {
+	let isRoot = type == undefined;
+	if (isRoot) {
+		if (sql) {
+			return parents;
+		} else if (relations.length === 1) {
 			return parents[0][relations[0].type];
 		} else {
 			return parents[0];

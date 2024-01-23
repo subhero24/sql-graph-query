@@ -1,92 +1,77 @@
+import Os from 'node:os';
 import Path from 'path';
+import Test from 'node:test';
+import Assert from 'node:assert';
 import Sqlite3 from 'sqlite3';
 import Filesystem from 'fs-extra';
 
-import * as Uvu from 'uvu';
-import * as assert from 'uvu/assert';
 import * as Database from 'sqlite';
 
 import query from '../index.js';
 
-let databasePath = Path.resolve('source', 'test', 'suite2.sqlite');
-
 let db;
-let suite = Uvu.suite('GraphSql');
+let dbPath = await Filesystem.mkdtemp(`${Os.tmpdir()}${Path.sep}`);
 
-suite.before.each(async () => {
-	await Filesystem.remove(databasePath);
-	await Filesystem.ensureFile(databasePath);
+Test.beforeEach(async () => {
+	await Filesystem.remove(dbPath);
+	await Filesystem.ensureFile(dbPath);
 
-	db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
+	db = await Database.open({ filename: dbPath, driver: Sqlite3.Database });
 	db.query = query;
 });
 
-suite.after.each(async () => {
-	await Filesystem.remove(databasePath);
+Test.afterEach(async () => {
+	await Filesystem.remove(dbPath);
 
 	db = undefined;
 });
 
-suite('test 1', async () => {
+Test('single row with id', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
+
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 	`);
 
 	let result = await db.query`users {
 		id
 	}`;
 
-	assert.is(result.length, 0);
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].id, '1');
 });
 
-suite('test 2', async () => {
+Test('multiple rows with id', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
 	let result = await db.query`users {
 		id
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].id, '1');
+	Assert.strictEqual(result.length, 2);
 });
+// });
 
-suite('test 3', async () => {
+Test('rows with multiple attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
-	`);
-
-	let result = await db.query`users {
-		id
-	}`;
-
-	assert.is(result.length, 2);
-});
-
-suite('test 4', async () => {
-	await db.exec(`
-		CREATE TABLE "users" (
-			"id" TEXT PRIMARY KEY,
-			"name" TEXT
-		);
-
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
 	let result = await db.query`users {
@@ -94,55 +79,55 @@ suite('test 4', async () => {
 		name
 	}`;
 
-	assert.is(result.length, 2);
-	assert.is(result[0].id, '1');
-	assert.is(result[1].id, '2');
-	assert.is(result[0].name, 'Bruno');
-	assert.is(result[1].name, 'Lies');
+	Assert.strictEqual(result.length, 2);
+	Assert.strictEqual(result[0].id, '1');
+	Assert.strictEqual(result[1].id, '2');
+	Assert.strictEqual(result[0].name, 'John');
+	Assert.strictEqual(result[1].name, 'Peter');
 });
 
-suite('test 5', async () => {
+Test('multiple rows without id', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
 	let result = await db.query`users {
 		name
 	}`;
 
-	assert.is(result.length, 2);
-	assert.is(result[0].id, undefined);
-	assert.is(result[1].id, undefined);
-	assert.is(result[0].name, 'Bruno');
-	assert.is(result[1].name, 'Lies');
+	Assert.strictEqual(result.length, 2);
+	Assert.strictEqual(result[0].id, undefined);
+	Assert.strictEqual(result[1].id, undefined);
+	Assert.strictEqual(result[0].name, 'John');
+	Assert.strictEqual(result[1].name, 'Peter');
 });
 
-suite('test 6', async () => {
+Test('rows with where condition', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
-	let result = await db.query`users WHERE name = 'Lies' {
+	let result = await db.query`users WHERE name = 'Peter' {
 		id
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].id, '2');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].id, '2');
 });
 
-suite('test 7', async () => {
+Test('single row without id', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -151,7 +136,7 @@ suite('test 7', async () => {
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 	`);
 
 	let result = await db.query`
@@ -159,10 +144,10 @@ suite('test 7', async () => {
 			name	
 		}`;
 
-	assert.is(result?.[0]?.name, 'Bruno');
+	Assert.strictEqual(result?.[0]?.name, 'John');
 });
 
-suite('test 8', async () => {
+Test('nested relation with ids', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -177,7 +162,7 @@ suite('test 8', async () => {
 			"brand" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 	`);
 
@@ -190,15 +175,15 @@ suite('test 8', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].cars?.length, 1);
-	assert.is(result[0].id, '1');
-	assert.is(result[0].name, 'Bruno');
-	assert.is(result[0].cars[0].id, '1');
-	assert.is(result[0].cars[0].brand, 'Chevrolet');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].cars?.length, 1);
+	Assert.strictEqual(result[0].id, '1');
+	Assert.strictEqual(result[0].name, 'John');
+	Assert.strictEqual(result[0].cars[0].id, '1');
+	Assert.strictEqual(result[0].cars[0].brand, 'Chevrolet');
 });
 
-suite('test 9', async () => {
+Test('nested relation without ids', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -213,7 +198,7 @@ suite('test 9', async () => {
 			"brand" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 	`);
 
@@ -224,13 +209,13 @@ suite('test 9', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].cars?.length, 1);
-	assert.is(result[0].name, 'Bruno');
-	assert.is(result[0].cars[0].brand, 'Chevrolet');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].cars?.length, 1);
+	Assert.strictEqual(result[0].name, 'John');
+	Assert.strictEqual(result[0].cars[0].brand, 'Chevrolet');
 });
 
-suite('test 10', async () => {
+Test('deeply nested relations', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -245,7 +230,7 @@ suite('test 10', async () => {
 			"brand" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 	`);
 
@@ -255,12 +240,12 @@ suite('test 10', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].cars?.length, 1);
-	assert.is(result[0].cars[0].brand, 'Chevrolet');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].cars?.length, 1);
+	Assert.strictEqual(result[0].cars[0].brand, 'Chevrolet');
 });
 
-suite('test 11', async () => {
+Test('deeply nested relations for multiple rows', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -275,8 +260,8 @@ suite('test 11', async () => {
 			"brand" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 	`);
 
@@ -286,12 +271,12 @@ suite('test 11', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 2);
-	assert.is(result[0].cars?.length, 1);
-	assert.is(result[1].cars?.length, 0);
+	Assert.strictEqual(result.length, 2);
+	Assert.strictEqual(result[0].cars?.length, 1);
+	Assert.strictEqual(result[1].cars?.length, 0);
 });
 
-suite('test 12', async () => {
+Test('deeple nested relations for multiple relations', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -306,8 +291,8 @@ suite('test 12', async () => {
 			"brand" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('2', '2', 'Kia');
 	`);
@@ -318,12 +303,12 @@ suite('test 12', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 2);
-	assert.is(result[0].cars?.length, 1);
-	assert.is(result[1].cars?.length, 1);
+	Assert.strictEqual(result.length, 2);
+	Assert.strictEqual(result[0].cars?.length, 1);
+	Assert.strictEqual(result[1].cars?.length, 1);
 });
 
-suite('test 13', async () => {
+Test('nested relation without id', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -339,7 +324,7 @@ suite('test 13', async () => {
 		);
 
 		INSERT INTO "cars"("id", "brand") VALUES ('1', 'Chevrolet');
-		INSERT INTO "users"("id", "carId", "name") VALUES ('1', '1', 'Bruno');
+		INSERT INTO "users"("id", "carId", "name") VALUES ('1', '1', 'John');
 	`);
 
 	let result = await db.query`users {
@@ -348,11 +333,11 @@ suite('test 13', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].car?.brand, 'Chevrolet');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].car?.brand, 'Chevrolet');
 });
 
-suite('test 14', async () => {
+Test('nested relation with id', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -367,7 +352,7 @@ suite('test 14', async () => {
 			"brand" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 	`);
 
@@ -377,12 +362,12 @@ suite('test 14', async () => {
 		}
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].cars?.length, 1);
-	assert.is(result[0].cars[0].id, '1');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].cars?.length, 1);
+	Assert.strictEqual(result[0].cars[0].id, '1');
 });
 
-suite('test 15', async () => {
+Test('deeple nested relations with attributes', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -405,7 +390,7 @@ suite('test 15', async () => {
 
 		INSERT INTO "brands"("id", "name") VALUES ('1', 'Chevrolet');
 		INSERT INTO "cars"("id", "brandId", "license") VALUES ('1', '1', 'ABC-123');
-		INSERT INTO "users"("id", "carId", "firstname") VALUES ('1', '1', 'Bruno');
+		INSERT INTO "users"("id", "carId", "firstname") VALUES ('1', '1', 'John');
 	`);
 
 	let result = await db.query`
@@ -421,10 +406,10 @@ suite('test 15', async () => {
 		}
 	`;
 
-	assert.is(result[0]?.car?.brand?.name, 'Chevrolet');
+	Assert.strictEqual(result[0]?.car?.brand?.name, 'Chevrolet');
 });
 
-suite('test 16', async () => {
+Test('multiple queries', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -440,7 +425,7 @@ suite('test 16', async () => {
 
 
 		INSERT INTO "cars"("id", "brand") VALUES ('1', 'Chevrolet');
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 	`);
 
 	let result = await db.query`
@@ -453,11 +438,11 @@ suite('test 16', async () => {
 		}
 	}`;
 
-	assert.is(result?.users?.[0]?.name, 'Bruno');
-	assert.is(result?.cars?.[0]?.brand, 'Chevrolet');
+	Assert.strictEqual(result?.users?.[0]?.name, 'John');
+	Assert.strictEqual(result?.cars?.[0]?.brand, 'Chevrolet');
 });
 
-suite('test 17', async () => {
+Test('deeply nested relations with multiple rows', async () => {
 	await db.exec(`
 		PRAGMA foreign_keys = ON;
 
@@ -473,7 +458,7 @@ suite('test 17', async () => {
 		);
 
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('1', '1', 'Chevrolet');
 		INSERT INTO "cars"("id", "userId", "brand") VALUES ('2', '1', 'Volkswagen');
 	`);
@@ -491,28 +476,28 @@ suite('test 17', async () => {
 		}
 	`;
 
-	assert.is(result?.[0]?.user?.cars?.length, 2);
+	Assert.strictEqual(result?.[0]?.user?.cars?.length, 2);
 });
 
-suite('Allow SQL expressions as attribute', async () => {
+Test('attributes with SQL expressions', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Lies');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
 	let result = await db.query`users {
 		COUNT(*) AS length
 	}`;
 
-	assert.is(result[0].length, 2);
+	Assert.strictEqual(result[0].length, 2);
 });
 
-suite('Allow 1 character properties', async () => {
+Test('attributes with 1 character', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"a" TEXT
@@ -525,11 +510,11 @@ suite('Allow 1 character properties', async () => {
 		a
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].a, '1');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].a, '1');
 });
 
-suite('Quote properties', async () => {
+Test('attributes with SQL keywords', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"from" TEXT
@@ -542,11 +527,11 @@ suite('Quote properties', async () => {
 		from
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].from, '1');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].from, '1');
 });
 
-suite('Quote table names', async () => {
+Test('relation names with SQL keywords', async () => {
 	await db.exec(`
 		CREATE TABLE "values" (
 			"attribute" TEXT
@@ -559,11 +544,11 @@ suite('Quote table names', async () => {
 		attribute
 	}`;
 
-	assert.is(result.length, 1);
-	assert.is(result[0].attribute, '1');
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].attribute, '1');
 });
 
-suite('Allow multiple relations', async () => {
+Test('multiple relations to the same table', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
@@ -577,7 +562,7 @@ suite('Allow multiple relations', async () => {
 			"license" TEXT
 		);
 
-		INSERT INTO "users"("id", "name") VALUES ('1', 'Bruno');
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "cars"("id", "userId", "license") VALUES ('1', '1', 'ABC-123');
 		INSERT INTO "cars"("id", "userId", "license") VALUES ('2', '1', 'XYZ-987');
 		UPDATE "users" SET "carId" = '1' WHERE "id" = '1';
@@ -592,9 +577,7 @@ suite('Allow multiple relations', async () => {
 		}
 	}`;
 
-	assert.is(result[0]?.car?.license, 'ABC-123');
-	assert.is(result[0]?.cars?.[0]?.license, 'ABC-123');
-	assert.is(result[0]?.cars?.[1]?.license, 'XYZ-987');
+	Assert.strictEqual(result[0]?.car?.license, 'ABC-123');
+	Assert.strictEqual(result[0]?.cars?.[0]?.license, 'ABC-123');
+	Assert.strictEqual(result[0]?.cars?.[1]?.license, 'XYZ-987');
 });
-
-suite.run();

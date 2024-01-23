@@ -26,76 +26,103 @@ Test.afterEach(async () => {
 	db = undefined;
 });
 
-Test('value interpolation', async () => {
+Test('insert mutation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
-		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
-	let result = await db.query`users WHERE name = ${'Peter'} {
-		id
-	}`;
-
-	Assert.strictEqual(result.length, 1);
-	Assert.strictEqual(result[0].id, '2');
-});
-
-Test('array interpolation', async () => {
-	await db.exec(`
-		CREATE TABLE "users" (
-			"id" TEXT PRIMARY KEY,
-			"name" TEXT
-		);
-		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
-		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
-		INSERT INTO "users"("id", "name") VALUES ('3', 'Ward');
-	`);
-
-	let result = await db.query`users WHERE id IN (${['1', '2']}) {
-		id
-	}`;
-
-	Assert.strictEqual(result.length, 2);
-	Assert.strictEqual(result[0].id, '1');
-	Assert.strictEqual(result[1].id, '2');
-});
-
-Test('double interpolation', async () => {
-	await db.exec(`
-		CREATE TABLE "users" (
-			"id" TEXT PRIMARY KEY,
-			"name" TEXT
-		);
-		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
-	`);
-
-	let result = await db.query`users WHERE id = ${'1'} AND name = ${'John'} {
-		id
-	}`;
+	let result = await db.query`
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John') {
+			id
+			name
+		}
+	`;
 
 	Assert.strictEqual(result.length, 1);
 	Assert.strictEqual(result[0].id, '1');
+	Assert.strictEqual(result[0].name, 'John');
+
+	let results = await db.query`
+		users {
+			id
+			name
+		}
+	`;
+	Assert.strictEqual(results.length, 1);
+	Assert.strictEqual(results[0].id, '1');
+	Assert.strictEqual(results[0].name, 'John');
 });
 
-Test('double array interpolation', async () => {
+Test('update mutation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
 		);
+
+		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
+	`);
+
+	let result = await db.query`
+		UPDATE users SET name = 'Peter' WHERE id = '1' {
+			id
+			name
+		}
+	`;
+
+	Assert.strictEqual(result.length, 1);
+	Assert.strictEqual(result[0].id, '1');
+	Assert.strictEqual(result[0].name, 'Peter');
+
+	let results = await db.query`
+		users {
+			id
+			name
+		}
+	`;
+
+	Assert.strictEqual(results.length, 1);
+	Assert.strictEqual(results[0].id, '1');
+	Assert.strictEqual(results[0].name, 'Peter');
+});
+
+Test('update mutations', async () => {
+	await db.exec(`
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"name" TEXT
+		);
+
 		INSERT INTO "users"("id", "name") VALUES ('1', 'John');
 		INSERT INTO "users"("id", "name") VALUES ('2', 'Peter');
 	`);
 
-	let result = await db.query`users WHERE id IN (${['1', '2', '3', '4']}) AND name IN (${['John', 'Peter']}) {
-		id
-	}`;
+	let result = await db.query`
+		UPDATE users SET name = 'Ward' {
+			id
+			name
+		}
+	`;
 
 	Assert.strictEqual(result.length, 2);
 	Assert.strictEqual(result[0].id, '1');
+	Assert.strictEqual(result[0].name, 'Ward');
 	Assert.strictEqual(result[1].id, '2');
+	Assert.strictEqual(result[1].name, 'Ward');
+
+	let results = await db.query`
+		users {
+			id
+			name
+		}
+	`;
+
+	Assert.strictEqual(results.length, 2);
+	Assert.strictEqual(result[0].id, '1');
+	Assert.strictEqual(result[0].name, 'Ward');
+	Assert.strictEqual(result[1].id, '2');
+	Assert.strictEqual(result[1].name, 'Ward');
 });
