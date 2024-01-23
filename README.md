@@ -11,8 +11,8 @@ npm i sql-graph-query
 
 ## Basic usage
 
-It expects every table in your database to have a primary key `id`.
-It expects foreign keys in your database to end with `Id`.
+- it expects your database to have tables with a primary key `id`.
+- It also expects your database to have foreign keys that end with `Id`.
 
 ```javascript
 import sqlQueryGraph from 'sql-graph-query';
@@ -95,7 +95,7 @@ let result = await db.query`
 		id
 		lastname
 		firstname
-		cars WHERE color IN ${colors}{
+		cars WHERE color IN (${colors}) {
 			id
 			license
 		}
