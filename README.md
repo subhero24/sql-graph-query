@@ -15,9 +15,9 @@ npm i sql-graph-query
 - It also expects your database to have foreign keys that end with `Id`.
 
 ```javascript
-import sqlQueryGraph from 'sql-graph-query';
+import sqlGraphQuery from 'sql-graph-query';
 
-db.query = sqlQueryGraph;
+db.query = sqlGraphQuery;
 
 let result = await db.query`
 	users {
@@ -33,10 +33,10 @@ let result = await db.query`
 or bind the function directly to your database
 
 ```javascript
-import sqlQueryGraph from 'sql-graph-query';
+import sqlGraphQuery from 'sql-graph-query';
 
 let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
-let query = sqlQueryGraph.bind(db);
+let query = sqlGraphQuery.bind(db);
 let result = await query`
 	users {
 		lastname
