@@ -125,6 +125,26 @@ let result = await db.query`
 `;
 ```
 
+## Multiple entry points
+
+```javascript
+let result = await db.query`
+	users  {
+		id
+		lastname
+		firstname
+		cars {
+			id
+		}
+	}
+
+	cars {
+		id
+		license
+	}
+`;
+```
+
 ## Mutations
 
 ```javascript
