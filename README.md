@@ -9,13 +9,21 @@ Retrieve data from your sqlite database with graphql-like queries.
 npm i sql-graph-query
 ```
 
+Import the version you need
+
+```javascript
+import sqlGraphQuery from 'sql-graph-query/bun';
+import sqlGraphQuery from 'sql-graph-query/sqlite';
+import sqlGraphQuery from 'sql-graph-query/better-sqlite';
+```
+
 ## Basic usage
 
 - it expects your database to have tables with a primary key `id`.
 - It also expects your database to have foreign keys that end with `Id`.
 
 ```javascript
-import sqlGraphQuery from 'sql-graph-query';
+import sqlGraphQuery from 'sql-graph-query/sqlite';
 
 db.query = sqlGraphQuery;
 
@@ -33,7 +41,7 @@ let result = await db.query`
 or bind the function directly to your database
 
 ```javascript
-import sqlGraphQuery from 'sql-graph-query';
+import sqlGraphQuery from 'sql-graph-query/sqlite';
 
 let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
 let query = sqlGraphQuery.bind(db);

@@ -1,32 +1,22 @@
-import Os from 'node:os';
-import Path from 'path';
-import Test from 'node:test';
-import Assert from 'node:assert';
 import Sqlite3 from 'sqlite3';
-import Filesystem from 'fs-extra';
-
 import * as Database from 'sqlite';
+
+import test from 'node:test';
+import assert from 'node:assert';
 
 import query from '../index.js';
 
 let db;
-let dbPath = await Filesystem.mkdtemp(`${Os.tmpdir()}${Path.sep}`);
 
-Test.beforeEach(async () => {
-	await Filesystem.remove(dbPath);
-	await Filesystem.ensureFile(dbPath);
-
-	db = await Database.open({ filename: dbPath, driver: Sqlite3.Database });
+test.beforeEach(async () => {
+	db = await Database.open({ filename: ':memory:', driver: Sqlite3.Database });
 	db.query = query;
 });
 
-Test.afterEach(async () => {
-	await Filesystem.remove(dbPath);
-
-	db = undefined;
+test.afterEach(async () => {
+	db.close();
 });
-
-Test('json query with attributes', async () => {
+test('json query with attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -42,11 +32,11 @@ Test('json query with attributes', async () => {
 		}
 	}`;
 
-	Assert.strictEqual(result[0]?.json?.a, 'x');
-	Assert.strictEqual(result[0]?.json?.b, 'y');
+	assert.strictEqual(result[0]?.json?.a, 'x');
+	assert.strictEqual(result[0]?.json?.b, 'y');
 });
 
-Test('json being null', async () => {
+test('json being null', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -59,10 +49,10 @@ Test('json being null', async () => {
 		json
 	}`;
 
-	Assert.strictEqual(result[0]?.json, null);
+	assert.strictEqual(result[0]?.json, null);
 });
 
-Test('json query without attributes', async () => {
+test('json query without attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -75,10 +65,10 @@ Test('json query without attributes', async () => {
 		json
 	}`;
 
-	Assert.strictEqual(result[0]?.json, '{"a":"x","b":"y"}');
+	assert.strictEqual(result[0]?.json, '{"a":"x","b":"y"}');
 });
 
-Test('json deeply nested', async () => {
+test('json deeply nested', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -97,10 +87,10 @@ Test('json deeply nested', async () => {
 		}
 	}`;
 
-	Assert.strictEqual(result[0]?.json?.some?.nested?.property, 'value');
+	assert.strictEqual(result[0]?.json?.some?.nested?.property, 'value');
 });
 
-Test('json filtered attributes', async () => {
+test('json filtered attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -115,10 +105,10 @@ Test('json filtered attributes', async () => {
 		}
 	}`;
 
-	Assert.strictEqual(result[0]?.json?.b, undefined);
+	assert.strictEqual(result[0]?.json?.b, undefined);
 });
 
-Test('json wildcard', async () => {
+test('json wildcard', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -133,11 +123,11 @@ Test('json wildcard', async () => {
 		}
 	}`;
 
-	Assert.strictEqual(result[0]?.json?.a, 'x');
-	Assert.strictEqual(result[0]?.json?.b, 'y');
+	assert.strictEqual(result[0]?.json?.a, 'x');
+	assert.strictEqual(result[0]?.json?.b, 'y');
 });
 
-Test('json arrays', async () => {
+test('json arrays', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"cars" TEXT
@@ -154,11 +144,11 @@ Test('json arrays', async () => {
 		}
 	`;
 
-	Assert.strictEqual(result[0]?.cars?.[0]?.license, 'ABC-123');
-	Assert.strictEqual(result[0]?.cars?.[1]?.license, 'XYZ-987');
+	assert.strictEqual(result[0]?.cars?.[0]?.license, 'ABC-123');
+	assert.strictEqual(result[0]?.cars?.[1]?.license, 'XYZ-987');
 });
 
-Test('json wildcard as attribute', async () => {
+test('json wildcard as attribute', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -175,10 +165,10 @@ Test('json wildcard as attribute', async () => {
 		}
 	`;
 
-	Assert.strictEqual(resources[0]?.json?.['*'], 'x');
+	assert.strictEqual(resources[0]?.json?.['*'], 'x');
 });
 
-Test('json wildcard as attribute filtering', async () => {
+test('json wildcard as attribute filtering', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -195,10 +185,10 @@ Test('json wildcard as attribute filtering', async () => {
 		}
 	`;
 
-	Assert.strictEqual(resources[0]?.json?.a, undefined);
+	assert.strictEqual(resources[0]?.json?.a, undefined);
 });
 
-Test('json wildcard as attribute with nested attributes', async () => {
+test('json wildcard as attribute with nested attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
 			"json" TEXT
@@ -217,7 +207,7 @@ Test('json wildcard as attribute with nested attributes', async () => {
 		}
 	`;
 
-	Assert.strictEqual(resources[0]?.json?.['*'].a, 'x');
-	Assert.strictEqual(resources[0]?.json?.['*'].b, undefined);
-	Assert.strictEqual(resources[0]?.json?.c, undefined);
+	assert.strictEqual(resources[0]?.json?.['*'].a, 'x');
+	assert.strictEqual(resources[0]?.json?.['*'].b, undefined);
+	assert.strictEqual(resources[0]?.json?.c, undefined);
 });

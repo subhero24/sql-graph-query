@@ -1,32 +1,23 @@
-import Os from 'node:os';
-import Path from 'path';
-import Test from 'node:test';
-import Assert from 'node:assert';
 import Sqlite3 from 'sqlite3';
-import Filesystem from 'fs-extra';
-
 import * as Database from 'sqlite';
+
+import test from 'node:test';
+import assert from 'node:assert';
 
 import query from '../index.js';
 
 let db;
-let dbPath = await Filesystem.mkdtemp(`${Os.tmpdir()}${Path.sep}`);
 
-Test.beforeEach(async () => {
-	await Filesystem.remove(dbPath);
-	await Filesystem.ensureFile(dbPath);
-
-	db = await Database.open({ filename: dbPath, driver: Sqlite3.Database });
+test.beforeEach(async () => {
+	db = await Database.open({ filename: ':memory:', driver: Sqlite3.Database });
 	db.query = query;
 });
 
-Test.afterEach(async () => {
-	await Filesystem.remove(dbPath);
-
-	db = undefined;
+test.afterEach(async () => {
+	db.close();
 });
 
-Test('value interpolation', async () => {
+test('value interpolation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
@@ -40,11 +31,11 @@ Test('value interpolation', async () => {
 		id
 	}`;
 
-	Assert.strictEqual(result.length, 1);
-	Assert.strictEqual(result[0].id, '2');
+	assert.strictEqual(result.length, 1);
+	assert.strictEqual(result[0].id, '2');
 });
 
-Test('array interpolation', async () => {
+test('array interpolation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
@@ -59,12 +50,12 @@ Test('array interpolation', async () => {
 		id
 	}`;
 
-	Assert.strictEqual(result.length, 2);
-	Assert.strictEqual(result[0].id, '1');
-	Assert.strictEqual(result[1].id, '2');
+	assert.strictEqual(result.length, 2);
+	assert.strictEqual(result[0].id, '1');
+	assert.strictEqual(result[1].id, '2');
 });
 
-Test('double interpolation', async () => {
+test('double interpolation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
@@ -77,11 +68,11 @@ Test('double interpolation', async () => {
 		id
 	}`;
 
-	Assert.strictEqual(result.length, 1);
-	Assert.strictEqual(result[0].id, '1');
+	assert.strictEqual(result.length, 1);
+	assert.strictEqual(result[0].id, '1');
 });
 
-Test('double array interpolation', async () => {
+test('double array interpolation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
@@ -95,7 +86,7 @@ Test('double array interpolation', async () => {
 		id
 	}`;
 
-	Assert.strictEqual(result.length, 2);
-	Assert.strictEqual(result[0].id, '1');
-	Assert.strictEqual(result[1].id, '2');
+	assert.strictEqual(result.length, 2);
+	assert.strictEqual(result[0].id, '1');
+	assert.strictEqual(result[1].id, '2');
 });

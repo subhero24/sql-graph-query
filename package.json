@@ -5,16 +5,29 @@
 	"type": "module",
 	"main": "build/index.js",
 	"scripts": {
-		"test": "node --test",
+		"test": "npm run test:bun && npm run test:node",
+		"test:bun": "bun test source/bun/test/*.test.js",
+		"test:node": "node --test source/node/**/test/*.test.js",
 		"lint": "eslint {source/*.js,source/**/*.js} --max-warnings=0",
-		"build": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --minify --analyze",
-		"develop": "esbuild --bundle source/index.js --format=esm --outfile=build/index.js --watch --analyze",
+		"build": "npm run build:bun && npm run build:index && npm run build:sqlite && npm run build:better-sqlite",
+		"build:bun": "esbuild --bundle source/bun/index.js --format=esm --outfile=build/bun.js --minify --analyze",
+		"build:index": "esbuild --bundle source/node/sqlite/index.js --format=esm --outfile=build/index.js --minify --analyze",
+		"build:sqlite": "esbuild --bundle source/node/sqlite/index.js --format=esm --outfile=build/sqlite.js --minify --analyze",
+		"build:better-sqlite": "esbuild --bundle source/node/better-sqlite/index.js --format=esm --outfile=build/better-sqlite.js --minify --analyze",
+		"develop": "esbuild --bundle source/sqlite/index.js --format=esm --outfile=build/index.js --watch --analyze",
 		"prepare": "npm run lint && npm run build"
+	},
+	"exports": {
+		".": "./build/index.js",
+		"./bun": "./build/bun.js",
+		"./sqlite": "./build/sqlite.js",
+		"./better-sqlite": "./build/better-sqlite.js"
 	},
 	"keywords": [],
 	"author": "Bruno Van Damme",
 	"license": "MIT",
 	"devDependencies": {
+		"better-sqlite3": "^9.4.3",
 		"esbuild": "^0.17.18",
 		"eslint": "^8.39.0",
 		"fs-extra": "^11.1.1",
