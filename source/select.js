@@ -1,7 +1,6 @@
-export default function attributes(db, query) {
-	let { table, attributes, relations } = query;
+export default function select(query, columns) {
+	let { attributes, relations } = query;
 
-	let columns = db.query(`PRAGMA table_info("${table}")`).all();
 	let columnNames = columns.map(column => column.name);
 
 	let queryAttributes = new Set(attributes);

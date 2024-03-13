@@ -23,11 +23,11 @@ import sqlGraphQuery from 'sql-graph-query/better-sqlite';
 - It also expects your database to have foreign keys that end with `Id`.
 
 ```javascript
-import sqlGraphQuery from 'sql-graph-query/sqlite';
+import sqlGraphQuery from 'sql-graph-query';
 
-db.query = sqlGraphQuery;
+db.graphQuery = sqlGraphQuery;
 
-let result = await db.query`
+let result = await db.graphQuery`
 	users {
 		lastname
 		firstname
@@ -41,11 +41,10 @@ let result = await db.query`
 or bind the function directly to your database
 
 ```javascript
-import sqlGraphQuery from 'sql-graph-query/sqlite';
+import sqlGraphQuery from 'sql-graph-query';
 
-let db = await Database.open({ filename: databasePath, driver: Sqlite3.Database });
-let query = sqlGraphQuery.bind(db);
-let result = await query`
+let graphQuery = sqlGraphQuery.bind(db);
+let result = await graphQuery`
 	users {
 		lastname
 		firstname
@@ -61,7 +60,7 @@ let result = await query`
 You can use plain old SQL to filter the rows you want
 
 ```javascript
-let result = await db.query`
+let result = await db.graphQuery`
 	users WHERE firstname = 'John' {
 		id
 		lastname
@@ -79,7 +78,7 @@ let result = await db.query`
 You can also use plain old SQL to select custom attributes
 
 ```javascript
-let result = await db.query`
+let result = await db.graphQuery`
 	users WHERE firstname = 'John' {
 		id
 		lastname AS name
@@ -98,7 +97,7 @@ let result = await db.query`
 Use template literal interpolations to use variables in your query
 
 ```javascript
-let result = await db.query`
+let result = await db.graphQuery`
 	users WHERE firstname = ${firstname} {
 		id
 		lastname
@@ -119,7 +118,7 @@ A column containing JSON strings can also be queried and filtered deeply without
 // A table "shapes" has a column "props" which contains some JSON
 // ie. { "radius": 3, "center": { "x": 1, "y": 0 } }
 
-let result = await db.query`
+let result = await db.graphQuery`
 	shapes WHERE type = 'circle' {
 		id
 		props {
@@ -136,7 +135,7 @@ let result = await db.query`
 ## Multiple entry points
 
 ```javascript
-let result = await db.query`
+let result = await db.graphQuery`
 	users  {
 		id
 		lastname
@@ -156,7 +155,7 @@ let result = await db.query`
 ## Mutations
 
 ```javascript
-let result = await db.query`
+let result = await db.graphQuery`
 	INSERT INTO users(id, firstname, lastname) VALUES ('1', 'John', 'Doe') {
 		id
 		firstname
@@ -169,7 +168,7 @@ let result = await db.query`
 ```
 
 ```javascript
-let result = await db.query`
+let result = await db.graphQuery`
 	UPDATE users SET firstname = 'Peter' WHERE firstname = 'John' {
 		id
 		firstname

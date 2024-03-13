@@ -5,9 +5,10 @@
 	"type": "module",
 	"main": "build/index.js",
 	"scripts": {
-		"test": "npm run test:bun && npm run test:node",
+		"test": "npm run test:sqlite && npm run test:better-sqlite && npm run test:bun",
 		"test:bun": "bun test source/bun/test/*.test.js",
-		"test:node": "node --test source/node/**/test/*.test.js",
+		"test:sqlite": "node --test source/sqlite/test/*.test.js",
+		"test:better-sqlite": "node --test source/better-sqlite/test/*.test.js",
 		"lint": "eslint {source/*.js,source/**/*.js} --max-warnings=0",
 		"build": "npm run build:bun && npm run build:index && npm run build:sqlite && npm run build:better-sqlite",
 		"build:bun": "esbuild --bundle source/bun/index.js --format=esm --outfile=build/bun.js --minify --analyze",

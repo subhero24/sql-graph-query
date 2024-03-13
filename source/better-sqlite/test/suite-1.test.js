@@ -7,11 +7,11 @@ import query from '../index.js';
 
 let db;
 
-test.beforeEach(async () => {
+test.beforeEach(() => {
 	db = new Database();
 	db.query = query;
 
-	await db.exec(`
+	db.exec(`
 		CREATE TABLE "users" (
 			"id" TEXT PRIMARY KEY,
 			"name" TEXT
@@ -21,7 +21,7 @@ test.beforeEach(async () => {
 	`);
 });
 
-test.afterEach(async () => {
+test.afterEach(() => {
 	db.close();
 });
 
