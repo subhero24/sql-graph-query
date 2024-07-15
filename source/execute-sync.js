@@ -6,11 +6,9 @@ export default function executeSync(database, query) {
 	let { sql, variables } = query;
 
 	if (sql) {
-		let columns$ = database.prepare(`PRAGMA table_info("${query.table}")`);
-		let columns = database.all(columns$);
+		let columns = database.all(`PRAGMA table_info("${query.table}")`);
 		let attribs = select(query, columns);
-		let entries$ = database.prepare(`${sql} RETURNING ${attribs[0]}`);
-		let entries = database.all(entries$, variables);
+		let entries = database.all(`${sql} RETURNING ${attribs[0]}`, variables);
 
 		return execute(query, entries);
 	} else {
@@ -38,10 +36,9 @@ export default function executeSync(database, query) {
 				let resource = singular ? query.table : type;
 
 				if (query.type == undefined) {
-					scope = `WITH temp AS (SELECT * FROM "${resource}")`;
+					scope = `"${resource}"`;
 				} else {
-					let references$ = database.prepare(`PRAGMA foreign_key_list("${resource}")`);
-					let references = database.all(references$);
+					let references = database.all(`PRAGMA foreign_key_list("${resource}")`);
 
 					let key;
 					if (singular) {
@@ -64,13 +61,12 @@ export default function executeSync(database, query) {
 						key = referenced[0].from;
 					}
 
-					scope = `WITH temp AS (SELECT * FROM "${relation.table}" WHERE "${key}" = ?)`;
+					scope = `(SELECT * FROM "${relation.table}" WHERE "${key}" = ?) AS "${relation.table}"`;
 				}
 
-				let columns$ = database.prepare(`PRAGMA table_info("${relation.table}")`);
-				let columns = database.all(columns$);
+				let columns = database.all(`PRAGMA table_info("${relation.table}")`);
 				let attribs = select(relation, columns);
-				let statement = database.prepare(`${scope} SELECT ${attribs[0]} FROM temp ${sql}`);
+				let statement = database.prepare(`SELECT ${attribs[0]} FROM ${scope} ${sql}`);
 
 				try {
 					for (let parent of parents) {
@@ -79,7 +75,7 @@ export default function executeSync(database, query) {
 							args.unshift(singular ? parent[column] : parent.id);
 						}
 
-						let children = database.all(statement, args);
+						let children = database.run(statement, args);
 						if (children.length) {
 							patch(children, attribs[1]);
 							execute(relation, children);

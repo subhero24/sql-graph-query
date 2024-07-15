@@ -3,11 +3,15 @@ export default class Database {
 		this.database = database;
 	}
 
+	all(sql, variables) {
+		return this.database.all(sql, variables);
+	}
+
 	prepare(sql) {
 		return this.database.prepare(sql);
 	}
 
-	all(statement, variables) {
+	run(statement, variables) {
 		return statement.all(variables);
 	}
 

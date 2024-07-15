@@ -572,3 +572,29 @@ test('multiple relations to the same table', async () => {
 	assert.strictEqual(result[0]?.cars?.[0]?.license, 'ABC-123');
 	assert.strictEqual(result[0]?.cars?.[1]?.license, 'XYZ-987');
 });
+
+test('joins', async () => {
+	await db.exec(`
+		CREATE TABLE "cars" (
+			"id" TEXT PRIMARY KEY,
+			"license" TEXT
+		);
+
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"carId" TEXT REFERENCES "cars"("id"),
+			"name" TEXT
+		);
+
+		INSERT INTO "cars"("id", "license") VALUES ('1', 'ABC-123');
+		INSERT INTO "users"("id", "carId", "name") VALUES ('1', '1', 'John');
+	`);
+
+	let result = await db.query`
+		users JOIN cars ON users.carId = cars.id ORDER BY license {
+			id
+			name
+		}`;
+
+	assert.strictEqual(result[0]?.name, 'John');
+});

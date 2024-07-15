@@ -16,6 +16,7 @@ test.beforeEach(async () => {
 test.afterEach(async () => {
 	db.close();
 });
+
 test('insert mutation', async () => {
 	await db.exec(`
 		CREATE TABLE "users" (

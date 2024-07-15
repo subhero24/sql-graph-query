@@ -3,11 +3,20 @@ export default class Database {
 		this.database = database;
 	}
 
+	all(sql, variables) {
+		let statement = this.database.prepare(sql);
+		if (variables == undefined) {
+			return statement.all();
+		} else {
+			return statement.all(variables);
+		}
+	}
+
 	prepare(sql) {
 		return this.database.prepare(sql);
 	}
 
-	all(statement, variables) {
+	run(statement, variables) {
 		if (variables == undefined) {
 			return statement.all();
 		} else {

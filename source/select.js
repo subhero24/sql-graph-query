@@ -25,13 +25,13 @@ export default function select(query, columns) {
 		}
 
 		queryAttributes.delete(relationColumnName);
-		relationAttributes.add(`"${relationColumnName}"`);
+		relationAttributes.add(`"${query.table}"."${relationColumnName}"`);
 	}
 
 	let sqlQueryAttributes = [...queryAttributes];
 	if (sqlQueryAttributes.length) {
 		sqlQueryAttributes = sqlQueryAttributes.map(attribute =>
-			columnNames.includes(attribute) ? `"${attribute}"` : attribute,
+			columnNames.includes(attribute) ? `"${query.table}"."${attribute}"` : attribute,
 		);
 	}
 
