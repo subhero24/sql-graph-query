@@ -24,5 +24,5 @@ export default class Database {
 		}
 	}
 
-	finalize(statement) {}
+	finalize() {}
 }

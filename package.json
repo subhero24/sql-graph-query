@@ -12,9 +12,9 @@
 		"lint": "eslint {source/*.js,source/**/*.js} --max-warnings=0",
 		"build": "npm run build:bun && npm run build:index && npm run build:sqlite && npm run build:better-sqlite",
 		"build:bun": "esbuild --bundle source/bun/index.js --format=esm --outfile=build/bun.js --minify --analyze",
-		"build:index": "esbuild --bundle source/node/sqlite/index.js --format=esm --outfile=build/index.js --minify --analyze",
-		"build:sqlite": "esbuild --bundle source/node/sqlite/index.js --format=esm --outfile=build/sqlite.js --minify --analyze",
-		"build:better-sqlite": "esbuild --bundle source/node/better-sqlite/index.js --format=esm --outfile=build/better-sqlite.js --minify --analyze",
+		"build:index": "esbuild --bundle source/sqlite/index.js --format=esm --outfile=build/index.js --minify --analyze",
+		"build:sqlite": "esbuild --bundle source/sqlite/index.js --format=esm --outfile=build/sqlite.js --minify --analyze",
+		"build:better-sqlite": "esbuild --bundle source/better-sqlite/index.js --format=esm --outfile=build/better-sqlite.js --minify --analyze",
 		"develop": "esbuild --bundle source/sqlite/index.js --format=esm --outfile=build/index.js --watch --analyze",
 		"prepare": "npm run lint && npm run build"
 	},
