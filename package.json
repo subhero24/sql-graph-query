@@ -28,12 +28,14 @@
 	"author": "Bruno Van Damme",
 	"license": "MIT",
 	"devDependencies": {
-		"better-sqlite3": "^9.4.3",
 		"esbuild": "^0.17.18",
 		"eslint": "^8.39.0",
 		"fs-extra": "^11.1.1",
 		"prettier": "^2.8.8",
 		"sqlite": "^4.2.0",
 		"sqlite3": "^5.1.6"
+	},
+	"dependencies": {
+		"better-sqlite3": "^11.1.2"
 	}
 }

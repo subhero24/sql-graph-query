@@ -570,3 +570,29 @@ test('multiple relations to the same table', () => {
 	expect(result[0]?.cars?.[0]?.license).toStrictEqual('ABC-123');
 	expect(result[0]?.cars?.[1]?.license).toStrictEqual('XYZ-987');
 });
+
+test('joins', async () => {
+	await db.exec(`
+		CREATE TABLE "cars" (
+			"id" TEXT PRIMARY KEY,
+			"license" TEXT
+		);
+
+		CREATE TABLE "users" (
+			"id" TEXT PRIMARY KEY,
+			"carId" TEXT REFERENCES "cars"("id"),
+			"name" TEXT
+		);
+
+		INSERT INTO "cars"("id", "license") VALUES ('1', 'ABC-123');
+		INSERT INTO "users"("id", "carId", "name") VALUES ('1', '1', 'John');
+	`);
+
+	let result = db.graph`
+		users JOIN cars ON users.carId = cars.id ORDER BY license {
+			id
+			name
+		}`;
+
+	expect(result[0]?.name).toStrictEqual('John');
+});
