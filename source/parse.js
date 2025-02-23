@@ -1,5 +1,5 @@
 const lineRegex = /\s*(.*\S)/dgmy;
-const queryRegex = /((?:INSERT|UPDATE)\s.*)\{\s*$/di;
+const queryRegex = /((?:INSERT|REPLACE|UPDATE)\s.*)\{\s*$/di;
 const relationStartRegex = /^(\S+)(.*)?\{\s*$/d;
 const relationFinishRegex = /\}\s*/d;
 

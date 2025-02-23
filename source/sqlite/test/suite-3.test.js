@@ -16,6 +16,7 @@ test.beforeEach(async () => {
 test.afterEach(async () => {
 	db.close();
 });
+
 test('json query with attributes', async () => {
 	await db.exec(`
 		CREATE TABLE "resources" (
@@ -46,7 +47,27 @@ test('json being null', async () => {
 	`);
 
 	let result = await db.query`resources {
-		json
+		json {
+			*
+		}
+	}`;
+
+	assert.strictEqual(result[0]?.json, null);
+});
+
+test.only('json being "null"', async () => {
+	await db.exec(`
+		CREATE TABLE "resources" (
+			"json" TEXT
+		);
+
+		INSERT INTO "resources"("json") VALUES ("null");
+	`);
+
+	let result = await db.query`resources {
+		json {
+			*
+		}
 	}`;
 
 	assert.strictEqual(result[0]?.json, null);

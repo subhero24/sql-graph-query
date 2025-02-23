@@ -6,7 +6,7 @@ export default function filter(object, relation) {
 
 	let objects = isArray ? object : [object];
 	let results = objects.map(object => {
-		if (isWildcard && object['*'] == undefined) return object;
+		if (isWildcard && object?.['*'] == undefined) return object;
 
 		let result = {};
 		for (let key in object) {
